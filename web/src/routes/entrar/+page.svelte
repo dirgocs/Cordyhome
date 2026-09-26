@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { to } from '$lib/nav';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import Logo from '$lib/components/Logo.svelte';
@@ -21,7 +22,7 @@
 			);
 			session.user = res.user;
 			session.setupRequired = false;
-			await goto('/', { replaceState: true });
+			await goto(to('/'), { replaceState: true });
 		} catch (e) {
 			// Aqui o 401 é "senha errada", não sessão expirada: mostra a mensagem do hub.
 			error = e instanceof Error ? e.message : errorMessage(e);

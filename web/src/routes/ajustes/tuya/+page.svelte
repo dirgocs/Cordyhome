@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { to } from '$lib/nav';
 	import { goto } from '$app/navigation';
 	import { Check, ChevronLeft, Gauge, LoaderCircle, RefreshCw, Smartphone, WifiOff } from '@lucide/svelte';
 	import { onDestroy } from 'svelte';
@@ -120,7 +121,7 @@
 
 <svelte:head><title>Conectar tomadas Tuya · Cordyhome</title></svelte:head>
 
-<a class="back" href="/ajustes"><ChevronLeft size={18} /> Ajustes</a>
+<a class="back" href={to('/ajustes')}><ChevronLeft size={18} /> Ajustes</a>
 
 <div class="wizard">
 	<ol class="progress" aria-label="Etapas">
@@ -256,7 +257,7 @@
 			<span class="done-icon"><Check size={26} strokeWidth={2.4} /></span>
 			<h1>Pronto</h1>
 			<p class="muted">{importedCount} {importedCount === 1 ? 'tomada conectada' : 'tomadas conectadas'}. As leituras de consumo começam agora.</p>
-			<button class="btn primary" type="button" onclick={() => goto('/')}>Ir para o início</button>
+			<button class="btn primary" type="button" onclick={() => goto(to('/'))}>Ir para o início</button>
 		</section>
 	{/if}
 </div>

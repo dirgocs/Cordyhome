@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { to } from '$lib/nav';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { Table2, ChartColumn } from '@lucide/svelte';
@@ -35,10 +36,11 @@
 	let showTable = $state(false);
 
 	function setParam(key: string, value: string) {
-		const url = new URL(page.url);
-		if (value) url.searchParams.set(key, value);
-		else url.searchParams.delete(key);
-		goto(url, { replaceState: true, keepFocus: true, noScroll: true });
+		const params = new URLSearchParams(page.url.searchParams);
+		if (value) params.set(key, value);
+		else params.delete(key);
+		const query = params.toString();
+		goto(to(`/energia${query ? `?${query}` : ''}`), { replaceState: true, keepFocus: true, noScroll: true });
 	}
 
 	$effect(() => {
@@ -77,7 +79,7 @@
 				value: d.kwh,
 				display: money(d.cost),
 				secondary: kwh(d.kwh),
-				href: `/dispositivos/${d.device_id}`
+				href: to(`/dispositivos/${d.device_id}`)
 			}))
 	);
 	const roomItems = $derived(

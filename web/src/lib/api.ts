@@ -1,3 +1,4 @@
+import { to } from './nav';
 import { goto } from '$app/navigation';
 
 export class ApiError extends Error {
@@ -22,6 +23,16 @@ function detailMessage(body: unknown, status: number): string {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+	if (import.meta.env.VITE_PROTOTYPE === '1') {
+		// Protótipo: responde com o hub simulado no navegador.
+		const { mockRequest } = await import('./mock/server');
+		const { status, data } = await mockRequest(method, path, body);
+		if (status >= 400) {
+			if (status === 401 && !path.startsWith('/auth/')) await goto(to('/entrar'));
+			throw new ApiError(status, detailMessage(data, status));
+		}
+		return data as T;
+	}
 	let res: Response;
 	try {
 		res = await fetch(`/api${path}`, {
@@ -37,7 +48,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 	const data = await res.json().catch(() => null);
 	if (!res.ok) {
 		if (res.status === 401 && !path.startsWith('/auth/')) {
-			await goto('/entrar');
+			await goto(to('/entrar'));
 		}
 		throw new ApiError(res.status, detailMessage(data, res.status));
 	}

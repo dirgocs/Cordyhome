@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { to } from '$lib/nav';
 	import '../app.css';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -8,6 +9,7 @@
 	import Toasts from '$lib/components/Toasts.svelte';
 	import { home, loadSession, session } from '$lib/state.svelte';
 	import { applyTheme, getTheme } from '$lib/theme';
+	import { PROTOTYPE } from '$lib/nav';
 
 	let { children } = $props();
 
@@ -29,7 +31,9 @@
 	}
 
 	$effect(() => {
-		applyTheme(getTheme());
+		// Só aplica se o usuário escolheu um tema; senão respeita o sistema (ou quem hospeda a página).
+		const saved = getTheme();
+		if (saved !== 'system') applyTheme(saved);
 		loadSession().catch(() => {
 			session.ready = true;
 		});
@@ -39,9 +43,9 @@
 	$effect(() => {
 		if (!session.ready) return;
 		if (!authed && !publicRoute) {
-			goto('/entrar', { replaceState: true });
+			goto(to('/entrar'), { replaceState: true });
 		} else if (authed) {
-			if (publicRoute) goto('/', { replaceState: true });
+			if (publicRoute) goto(to('/'), { replaceState: true });
 			if (!home.loaded) home.refresh().catch(() => {});
 			home.connect();
 		}
@@ -55,10 +59,10 @@
 {:else if authed}
 	<div class="shell">
 		<aside class="sidebar">
-			<a class="brand" href="/"><Logo /> <span>Cordyhome</span></a>
+			<a class="brand" href={to('/')}><Logo /> <span>Cordyhome</span></a>
 			<nav aria-label="Principal">
 				{#each nav as item (item.href)}
-					<a href={item.href} class:active={isActive(item.href)} aria-current={isActive(item.href) ? 'page' : undefined}>
+					<a href={to(item.href)} class:active={isActive(item.href)} aria-current={isActive(item.href) ? 'page' : undefined}>
 						<item.icon size={19} strokeWidth={1.8} />
 						<span>{item.label}</span>
 						{#if item.href === '/alertas' && home.unreadAlerts > 0}
@@ -71,6 +75,9 @@
 		</aside>
 
 		<main>
+			{#if PROTOTYPE}
+				<div class="proto-banner" role="note">Protótipo com dados de demonstração. Nada aqui controla aparelhos reais.</div>
+			{/if}
 			{#if !home.connected}
 				<div class="offline-banner" role="status">
 					<WifiOff size={15} /> Reconectando ao hub…
@@ -81,7 +88,7 @@
 
 		<nav class="tabbar" aria-label="Principal">
 			{#each nav as item (item.href)}
-				<a href={item.href} class:active={isActive(item.href)} aria-current={isActive(item.href) ? 'page' : undefined}>
+				<a href={to(item.href)} class:active={isActive(item.href)} aria-current={isActive(item.href) ? 'page' : undefined}>
 					<span class="tab-icon">
 						<item.icon size={22} strokeWidth={isActive(item.href) ? 2.1 : 1.7} />
 						{#if item.href === '/alertas' && home.unreadAlerts > 0}
@@ -246,6 +253,15 @@
 		border: 2px solid var(--bg);
 	}
 
+	.proto-banner {
+		padding: 8px 16px;
+		background: var(--surface-2);
+		color: var(--text-2);
+		font-size: 12.5px;
+		font-weight: 520;
+		text-align: center;
+		border-bottom: 1px solid var(--border);
+	}
 	.offline-banner {
 		position: sticky;
 		top: 0;

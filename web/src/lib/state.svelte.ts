@@ -70,8 +70,18 @@ class HomeState {
 		this.loaded = true;
 	}
 
+	#mockUnsubscribe: (() => void) | null = null;
+
 	connect() {
 		this.#stopped = false;
+		if (import.meta.env.VITE_PROTOTYPE === '1') {
+			if (!this.#mockUnsubscribe) {
+				import('./mock/server').then(({ subscribe }) => {
+					this.#mockUnsubscribe ??= subscribe((m) => this.#handle(m));
+				});
+			}
+			return;
+		}
 		if (this.#ws) return;
 		const proto = location.protocol === 'https:' ? 'wss' : 'ws';
 		const ws = new WebSocket(`${proto}://${location.host}/api/ws`);
@@ -95,6 +105,8 @@ class HomeState {
 
 	disconnect() {
 		this.#stopped = true;
+		this.#mockUnsubscribe?.();
+		this.#mockUnsubscribe = null;
 		this.#ws?.close();
 		this.#ws = null;
 	}

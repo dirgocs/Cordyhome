@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { to } from '$lib/nav';
 	import { goto } from '$app/navigation';
 	import { ArrowDown, ArrowUp, Check, LogOut, Pencil, Plus, Radar, Trash2, X } from '@lucide/svelte';
 	import { api } from '$lib/api';
@@ -130,7 +131,7 @@
 		await api.post('/auth/logout').catch(() => {});
 		home.disconnect();
 		session.user = null;
-		goto('/entrar');
+		goto(to('/entrar'));
 	}
 
 	const deviceCount = (roomId: number) => home.devices.filter((d) => d.room_id === roomId).length;
@@ -155,7 +156,7 @@
 			</div>
 		</div>
 		<div class="actions">
-			<a class="btn primary" href="/ajustes/tuya"><Plus size={16} /> {tuya?.linked ? 'Adicionar ou sincronizar' : 'Conectar conta'}</a>
+			<a class="btn primary" href={to('/ajustes/tuya')}><Plus size={16} /> {tuya?.linked ? 'Adicionar ou sincronizar' : 'Conectar conta'}</a>
 			{#if tuya?.imported_devices}
 				<button class="btn" type="button" onclick={rescan} disabled={scanning}>
 					<Radar size={16} /> {scanning ? 'Procurando…' : 'Procurar na rede'}

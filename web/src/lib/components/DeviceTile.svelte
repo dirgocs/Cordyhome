@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { to } from '$lib/nav';
 	import { WifiOff } from '@lucide/svelte';
 	import { pending, setPower } from '$lib/control.svelte';
 	import { watts } from '$lib/format';
@@ -11,7 +12,7 @@
 	const busy = $derived(!!pending[device.id]);
 </script>
 
-<a class="tile" class:on class:offline={!device.online} href="/dispositivos/{device.id}">
+<a class="tile" class:on class:offline={!device.online} href={to(`/dispositivos/${device.id}`)}>
 	<div class="top">
 		<span class="icon"><KindIcon kind={device.kind} /></span>
 		<Switch

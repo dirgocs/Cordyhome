@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { to } from '$lib/nav';
 	import { BellOff, CircleCheck, OctagonAlert, TriangleAlert, Info } from '@lucide/svelte';
 	import { api } from '$lib/api';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -110,7 +111,7 @@
 						{:else if !alert.resolved_at}
 							<span class="pill warning">Em andamento</span>
 						{/if}
-						{#if alert.device_id}<a href="/dispositivos/{alert.device_id}">Ver aparelho</a>{/if}
+						{#if alert.device_id}<a href={to(`/dispositivos/${alert.device_id}`)}>Ver aparelho</a>{/if}
 					</div>
 				</div>
 				{#if !alert.acknowledged}

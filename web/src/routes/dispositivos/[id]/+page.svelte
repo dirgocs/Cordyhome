@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { to } from '$lib/nav';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { ChevronLeft, Plus, RefreshCw, ShieldCheck, TriangleAlert } from '@lucide/svelte';
@@ -115,7 +116,7 @@
 			await api.del(`/devices/${id}`);
 			home.devices = home.devices.filter((d) => d.id !== id);
 			toast('Aparelho removido');
-			goto('/');
+			goto(to('/'));
 		} catch (e) {
 			toast(errorMessage(e), 'error');
 		}
@@ -148,7 +149,7 @@
 
 <svelte:head><title>{device?.name ?? 'Aparelho'} · Cordyhome</title></svelte:head>
 
-<a class="back" href="/"><ChevronLeft size={18} /> Início</a>
+<a class="back" href={to('/')}><ChevronLeft size={18} /> Início</a>
 
 {#if notFound}
 	<p class="muted">Esse aparelho não existe mais.</p>

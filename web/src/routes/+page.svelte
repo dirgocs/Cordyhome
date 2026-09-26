@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { to } from '$lib/nav';
 	import { ArrowRight, Bell, Plug, Power, PowerOff } from '@lucide/svelte';
 	import { api } from '$lib/api';
 	import AreaChart from '$lib/components/AreaChart.svelte';
@@ -84,7 +85,7 @@
 			Traga suas tomadas Tuya / Smart Life para o Cordyhome. Leva uns 2 minutos, e depois disso
 			elas funcionam pela sua rede local, sem nuvem e sem assinatura.
 		</p>
-		<a class="btn primary" href="/ajustes/tuya">Conectar tomadas <ArrowRight size={17} /></a>
+		<a class="btn primary" href={to('/ajustes/tuya')}>Conectar tomadas <ArrowRight size={17} /></a>
 	</section>
 {:else}
 	<p class="date eyebrow">{today}</p>
@@ -109,12 +110,12 @@
 	</section>
 
 	<section class="stats">
-		<a class="stat card" href="/energia?range=today">
+		<a class="stat card" href={to('/energia?range=today')}>
 			<span class="eyebrow">Hoje</span>
 			<strong>{summary ? money(summary.today.cost) : '—'}</strong>
 			<span class="muted num">{summary ? kwh(summary.today.kwh) : ' '}</span>
 		</a>
-		<a class="stat card" href="/energia?range=month">
+		<a class="stat card" href={to('/energia?range=month')}>
 			<span class="eyebrow">Este mês</span>
 			<strong>{summary ? money(summary.month.cost) : '—'}</strong>
 			<span class="muted">
@@ -128,7 +129,7 @@
 	</section>
 
 	{#if home.unreadAlerts > 0}
-		<a class="alert-strip" href="/alertas">
+		<a class="alert-strip" href={to('/alertas')}>
 			<Bell size={17} />
 			<span>{home.unreadAlerts} {home.unreadAlerts === 1 ? 'alerta não lido' : 'alertas não lidos'}</span>
 			<ArrowRight size={16} class="push" />
