@@ -1,0 +1,137 @@
+from __future__ import annotations
+
+import asyncio
+
+from tests.conftest import add_device
+
+
+def test_setup_login_logout_flow(client):
+    assert client.get("/api/auth/status").json()["setup_required"] is True
+    assert client.get("/api/devices").status_code == 401
+    assert (
+        client.post("/api/auth/setup", json={"username": "ana", "password": "curta"}).status_code
+        == 422
+    )
+    client.post("/api/auth/setup", json={"username": "ana", "password": "segredo123"})
+    assert client.get("/api/devices").status_code == 200
+    assert (
+        client.post("/api/auth/setup", json={"username": "x", "password": "segredo123"}).status_code
+        == 409
+    )
+    client.post("/api/auth/logout")
+    assert client.get("/api/devices").status_code == 401
+    bad = client.post("/api/auth/login", json={"username": "ana", "password": "errada"})
+    assert bad.status_code == 401
+    ok = client.post("/api/auth/login", json={"username": "ANA", "password": "segredo123"})
+    assert ok.status_code == 200
+
+
+def test_login_rate_limit(client):
+    client.post("/api/auth/setup", json={"username": "ana", "password": "segredo123"})
+    client.post("/api/auth/logout")
+    for _ in range(5):
+        client.post("/api/auth/login", json={"username": "ana", "password": "errada"})
+    r = client.post("/api/auth/login", json={"username": "ana", "password": "segredo123"})
+    assert r.status_code == 429
+
+
+def test_cross_origin_writes_are_blocked(authed, svc):
+    device_id = add_device(svc)
+    r = authed.post(f"/api/devices/{device_id}/toggle", headers={"origin": "http://evil.example"})
+    assert r.status_code == 403
+
+
+def test_power_command_updates_state_and_logs(authed, svc, adapter):
+    device_id = add_device(svc)
+    r = authed.post(f"/api/devices/{device_id}/power", json={"on": False})
+    assert r.status_code == 200 and r.json()["is_on"] is False
+    assert adapter.on[device_id] is False
+    detail = authed.get(f"/api/devices/{device_id}").json()
+    assert detail["events"][0]["action"] == "off"
+
+
+def test_failed_command_returns_502_and_records_alert(authed, svc, adapter):
+    device_id = add_device(svc)
+    adapter.fail.add(device_id)
+    r = authed.post(f"/api/devices/{device_id}/power", json={"on": True})
+    assert r.status_code == 502
+    alerts = authed.get("/api/alerts").json()
+    assert alerts["unread"] == 1 and alerts["items"][0]["kind"] == "command_failed"
+
+
+def test_offline_alert_opens_and_resolves(authed, svc, adapter, clock):
+    device_id = add_device(svc, online=1, last_seen=1)
+    adapter.fail.add(device_id)
+    for _ in range(3):
+        asyncio.run(svc.hub.poll_once())
+        clock.advance(10)
+    device = authed.get(f"/api/devices/{device_id}").json()
+    assert device["online"] is False
+    items = authed.get("/api/alerts").json()["items"]
+    assert [a["kind"] for a in items] == ["offline"] and items[0]["resolved_at"] is None
+
+    adapter.fail.clear()
+    asyncio.run(svc.hub.poll_once())
+    items = authed.get("/api/alerts").json()["items"]
+    assert items[0]["resolved_at"] is not None
+
+
+def test_high_power_alert(authed, svc, adapter):
+    device_id = add_device(svc, power_alert_watts=1000)
+    adapter.power[device_id] = 1500
+    asyncio.run(svc.hub.poll_once())
+    items = authed.get("/api/alerts").json()["items"]
+    assert items[0]["kind"] == "high_power" and items[0]["severity"] == "critical"
+
+
+def test_estimated_power_for_devices_without_meter(authed, svc):
+    device_id = add_device(svc, nominal_watts=60)
+    asyncio.run(svc.hub.poll_once())
+    device = authed.get(f"/api/devices/{device_id}").json()
+    assert device["power_w"] == 60 and device["power_estimated"] is True
+
+
+def test_schedule_fires_once(authed, svc, adapter, clock):
+    device_id = add_device(svc)
+    local = clock.local("America/Sao_Paulo")
+    r = authed.post(
+        "/api/schedules",
+        json={"device_id": device_id, "action": "off", "time": local.strftime("%H:%M")},
+    )
+    assert r.status_code == 201
+    asyncio.run(svc.hub.run_due_schedules())
+    assert adapter.on[device_id] is False
+    adapter.on[device_id] = True
+    asyncio.run(svc.hub.run_due_schedules())
+    assert adapter.on[device_id] is True  # não disparou de novo
+
+
+def test_schedule_validation(authed, svc):
+    device_id = add_device(svc)
+    r = authed.post(
+        "/api/schedules", json={"device_id": device_id, "action": "on", "time": "25:00"}
+    )
+    assert r.status_code == 422
+
+
+def test_rooms_and_room_power(authed, svc, adapter):
+    room = authed.post("/api/rooms", json={"name": "Sala"}).json()
+    a = add_device(svc, "A", room_id=room["id"], online=1)
+    b = add_device(svc, "B", room_id=room["id"], online=1)
+    r = authed.post(f"/api/rooms/{room['id']}/power", json={"on": False})
+    assert r.json() == {"changed": 2, "failed": []}
+    assert adapter.on[a] is False and adapter.on[b] is False
+    assert authed.delete(f"/api/rooms/{room['id']}").status_code == 204
+    assert authed.get(f"/api/devices/{a}").json()["room_id"] is None
+
+
+def test_device_detail_never_exposes_local_key(authed, svc):
+    device_id = add_device(svc, config='{"local_key": "super-secreta", "ip": "10.0.0.5"}')
+    body = authed.get(f"/api/devices/{device_id}").text
+    assert "super-secreta" not in body and "10.0.0.5" in body
+
+
+def test_settings_validation(authed):
+    assert authed.patch("/api/settings", json={"timezone": "Marte/Base"}).status_code == 422
+    r = authed.patch("/api/settings", json={"tariff_per_kwh": 0.92})
+    assert r.json()["tariff_per_kwh"] == 0.92
