@@ -53,6 +53,7 @@ def device_out(row: sqlite3.Row) -> dict[str, Any]:
         "last_error": row["last_error"],
         "nominal_watts": row["nominal_watts"],
         "power_alert_watts": row["power_alert_watts"],
+        "confirm_off": bool(row["confirm_off"]),
         "info": {
             "ip": cfg.get("ip"),
             "protocol_version": cfg.get("version"),
@@ -308,8 +309,11 @@ class Hub:
         return await self.set_power(device_id, not bool(row["is_on"]), source)
 
     async def room_power(self, room_id: int, on: bool) -> dict[str, Any]:
+        # Aparelhos protegidos (ex.: geladeira) nunca são desligados em lote.
+        protected = "" if on else " AND confirm_off = 0"
         rows = self.db.all(
-            "SELECT id FROM devices WHERE room_id = ? AND enabled = 1 AND online = 1", (room_id,)
+            "SELECT id FROM devices WHERE room_id = ? AND enabled = 1 AND online = 1" + protected,
+            (room_id,),
         )
         results = await asyncio.gather(
             *(self.set_power(r["id"], on, "room") for r in rows), return_exceptions=True

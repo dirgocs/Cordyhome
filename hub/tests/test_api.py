@@ -41,6 +41,18 @@ def test_cross_origin_writes_are_blocked(authed, svc):
     assert r.status_code == 403
 
 
+def test_same_origin_behind_proxy_is_allowed(authed, svc):
+    device_id = add_device(svc)
+    r = authed.post(
+        f"/api/devices/{device_id}/toggle",
+        headers={
+            "origin": "https://casa.tail1234.ts.net",
+            "x-forwarded-host": "casa.tail1234.ts.net",
+        },
+    )
+    assert r.status_code == 200
+
+
 def test_power_command_updates_state_and_logs(authed, svc, adapter):
     device_id = add_device(svc)
     r = authed.post(f"/api/devices/{device_id}/power", json={"on": False})
@@ -135,3 +147,12 @@ def test_settings_validation(authed):
     assert authed.patch("/api/settings", json={"timezone": "Marte/Base"}).status_code == 422
     r = authed.patch("/api/settings", json={"tariff_per_kwh": 0.92})
     assert r.json()["tariff_per_kwh"] == 0.92
+
+
+def test_room_off_skips_protected_devices(authed, svc, adapter):
+    room = authed.post("/api/rooms", json={"name": "Cozinha"}).json()
+    fridge = add_device(svc, "Geladeira", room_id=room["id"], online=1, confirm_off=1)
+    kettle = add_device(svc, "Chaleira", room_id=room["id"], online=1)
+    r = authed.post(f"/api/rooms/{room['id']}/power", json={"on": False})
+    assert r.json()["changed"] == 1
+    assert adapter.on[kettle] is False and fridge not in adapter.on

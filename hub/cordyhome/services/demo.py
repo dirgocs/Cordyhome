@@ -53,7 +53,8 @@ def seed_demo(db: Database, tz: str = "America/Sao_Paulo", days: int = 60) -> No
             }
             cur = db.execute(
                 "INSERT INTO devices (name, room_id, kind, adapter, external_id, config, "
-                "sort_order, created_at, power_alert_watts) VALUES (?,?,?,?,?,?,?,?,?)",
+                "sort_order, created_at, power_alert_watts, confirm_off) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (
                     name,
                     room_ids[room],
@@ -64,6 +65,7 @@ def seed_demo(db: Database, tz: str = "America/Sao_Paulo", days: int = 60) -> No
                     index,
                     now,
                     1500 if watts > 500 else None,
+                    int(name == "Geladeira"),
                 ),
             )
             device_id = cur.lastrowid
@@ -80,6 +82,17 @@ def seed_demo(db: Database, tz: str = "America/Sao_Paulo", days: int = 60) -> No
                     wh = config["standby_watts"]
                 rows.append((device_id, ts, round(wh, 3)))
             db.executemany("INSERT INTO energy_hour (device_id, ts, wh) VALUES (?,?,?)", rows)
+
+            # Últimas 3 horas em minutos, para a curva de potência não começar vazia.
+            minutes = []
+            for ts in range((now - 3 * 3600) // 60 * 60, now // 60 * 60, 60):
+                on = config["initially_on"]
+                avg = watts * rng.uniform(0.85, 1.1) if on else config["standby_watts"]
+                minutes.append((device_id, ts, avg / 60, avg, avg * 1.05))
+            db.executemany(
+                "INSERT INTO energy_minute (device_id, ts, wh, avg_w, max_w) VALUES (?,?,?,?,?)",
+                minutes,
+            )
 
         schedules = [
             ("Cafeteira", "on", "06:50", 0b0111110),

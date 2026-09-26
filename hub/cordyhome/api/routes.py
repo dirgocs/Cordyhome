@@ -84,6 +84,7 @@ class DevicePatch(BaseModel):
     enabled: bool | None = None
     nominal_watts: float | None = Field(None, ge=0, le=100_000)
     power_alert_watts: float | None = Field(None, ge=0, le=100_000)
+    confirm_off: bool | None = None
     ip: str | None = Field(None, max_length=64)
     protocol_version: float | None = None
 
@@ -153,8 +154,9 @@ def patch_device(device_id: int, body: DevicePatch, svc: Services = Depends(serv
         config_changed = True
     if "room_id" in changes and changes["room_id"] is not None:
         _ensure_room(svc, changes["room_id"])
-    if "enabled" in changes:
-        changes["enabled"] = int(changes["enabled"])
+    for flag in ("enabled", "confirm_off"):
+        if flag in changes:
+            changes[flag] = int(changes[flag])
     if config_changed:
         changes["config"] = json.dumps(config)
         svc.hub.forget(device_id, row["adapter"])

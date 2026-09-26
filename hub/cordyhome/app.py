@@ -80,9 +80,10 @@ def create_app(
     @app.middleware("http")
     async def same_origin_guard(request: Request, call_next):
         # Proteção CSRF: requisições que alteram estado precisam vir da própria interface.
+        # Atrás de proxy (ex.: `tailscale serve`), o host original vem em X-Forwarded-Host.
         origin = request.headers.get("origin")
-        host = request.headers.get("host")
-        if request.method in UNSAFE_METHODS and origin and urlparse(origin).netloc != host:
+        hosts = {request.headers.get("host"), request.headers.get("x-forwarded-host")}
+        if request.method in UNSAFE_METHODS and origin and urlparse(origin).netloc not in hosts:
             return JSONResponse({"detail": "Origem não permitida."}, status_code=403)
         return await call_next(request)
 

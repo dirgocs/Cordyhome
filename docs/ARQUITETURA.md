@@ -1,4 +1,4 @@
-# Cordyhome — Arquitetura (proposta, em revisão)
+# Cordyhome — Arquitetura
 
 App **gratuito e sem nuvem obrigatória** para gestão de dispositivos IoT Wi‑Fi da casa:
 dispositivos, ambientes, **consumo de energia (prioridade nº 1)**, liga/desliga, agendamentos,
@@ -74,17 +74,34 @@ ou firmware assinado sem API são reportados como não suportados.
 
 ## Stack
 
-- **Hub:** Python 3.12+, FastAPI (REST + WebSocket), SQLite (SQLAlchemy/SQLModel + Alembic),
-  asyncio para polling/push, agendador e alertas.
-- **Interface:** SvelteKit (Svelte 5, build estático servido pelo hub), Tailwind, PWA instalável.
+- **Hub:** Python 3.11+, FastAPI (REST + WebSocket), SQLite via `sqlite3` da biblioteca padrão
+  (migrações numeradas no código; sem ORM, o esquema é pequeno), asyncio para leitura, agendador
+  e alertas. Chamadas bloqueantes (tinytuya, SDK Tuya) rodam em threads.
+- **Interface:** SvelteKit (Svelte 5, SPA estática servida pelo hub), CSS próprio com tokens de
+  design (sem framework de utilitários), gráficos SVG próprios, PWA instalável.
 - **Distribuição:** Docker (network host para descoberta na rede) primeiro; app desktop Tauri com o
   hub como sidecar depois.
 - **Acesso remoto:** autenticação própria (usuários, hash de senha, sessões; passkeys depois) +
   **Tailscale** (gratuito para uso pessoal, sem domínio). Sem abrir portas no roteador.
 
+## Energia
+
+- Leitura de potência a cada ciclo (10 s por padrão); a energia é integrada pelo método do
+  trapézio entre leituras consecutivas, sem extrapolar lacunas maiores que 60 s.
+- Buckets de 1 minuto (14 dias, para curvas detalhadas) e de 1 hora (permanente, para
+  relatórios). Dia, mês e 12 meses são agregados a partir das horas, no fuso configurado.
+- Aparelho sem medidor: consumo estimado pela potência nominal informada, quando ligado.
+
+## Segurança
+
+- Usuários locais com senha em scrypt; sessão em cookie HttpOnly/SameSite=Lax (Secure em HTTPS).
+- Limite de tentativas de login por IP; requisições que alteram estado precisam vir da mesma
+  origem (proteção CSRF).
+- A chave local das tomadas fica só no banco do hub e nunca é enviada para a interface.
+
 ## Fases
 
-1. **MVP (Tuya + energia):** núcleo, UI, login, ambientes, adaptador Tuya com assistente de local
+1. **MVP (Tuya + energia)** (implementado): núcleo, UI, login, ambientes, adaptador Tuya com assistente de local
    keys, liga/desliga, painel de energia (instantâneo, por período, por aparelho/ambiente, custo
    em R$), agendamentos, alertas de falha/offline/consumo alto, simulador para desenvolvimento.
 2. **Mais famílias:** Shelly, Tasmota, ESPHome, MQTT, HTTP genérico, Sonoff LAN, descoberta na rede.

@@ -49,6 +49,7 @@ MIGRATIONS: list[str] = [
         sort_order INTEGER NOT NULL DEFAULT 0,
         nominal_watts REAL,
         power_alert_watts REAL,
+        confirm_off INTEGER NOT NULL DEFAULT 0,
         online INTEGER NOT NULL DEFAULT 0,
         is_on INTEGER,
         power_w REAL,
