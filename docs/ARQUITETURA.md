@@ -14,7 +14,9 @@ dispositivos presos à nuvem.
 - **Parque atual:** 17 tomadas **Steck compatíveis com Tuya**, com medição de energia. Mais
   dispositivos no futuro, de outras famílias.
 - **Acesso remoto** seguro, sem abrir portas no roteador.
-- Local de hospedagem do hub ainda indefinido → precisa rodar em PC, Raspberry Pi, mini PC ou NAS.
+- Hospedagem: **PC do usuário** por enquanto; **Raspberry Pi** depois (build ARM64 obrigatório).
+- O app oficial cobra para exibir o consumo → o Cordyhome lê os dados de energia **direto da tomada**,
+  sem depender do app.
 
 ## Princípio: núcleo + adaptadores
 
@@ -92,6 +94,8 @@ ou firmware assinado sem API são reportados como não suportados.
 
 ## Pendências
 
-- Identificar modelo exato e chip das tomadas Steck (etiqueta, caixa ou app).
+- Confirmar pela Tuya IoT Platform (depuração de dispositivo, gratuita) que as tomadas Steck expõem
+  os data points de energia e em qual escala.
+- Identificar o chip (opcional; via certificado Anatel da etiqueta ou abrindo a tomada).
 - Confirmar em qual app as tomadas estão pareadas (Smart Life / Tuya Smart / outro).
-- Definir onde o hub vai rodar 24h.
+- Sistema operacional do PC e modelo do Raspberry Pi.
