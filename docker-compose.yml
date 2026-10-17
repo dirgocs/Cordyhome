@@ -1,0 +1,12 @@
+services:
+  cordyhome:
+    build: .
+    container_name: cordyhome
+    restart: unless-stopped
+    # Rede do host: necessária para achar as tomadas Tuya por broadcast UDP na rede local.
+    network_mode: host
+    environment:
+      TZ: America/Sao_Paulo
+      # CORDYHOME_DEMO: "1"   # dados de demonstração, sem hardware
+    volumes:
+      - ./data:/data
