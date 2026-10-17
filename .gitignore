@@ -17,3 +17,6 @@ data/
 *.db-shm
 .env
 .DS_Store
+
+# Pacotes gerados
+dist/
