@@ -30,6 +30,25 @@ executar as rotinas. A interface é aberta pelo navegador de qualquer aparelho d
 
 ## Instalação
 
+### Windows: instalador de dois cliques
+
+1. Baixe o [**Instalar-Cordyhome.cmd**](https://github.com/dirgocs/Cordyhome/releases/latest/download/Instalar-Cordyhome.cmd).
+2. Dê dois cliques no arquivo. Se aparecer "O Windows protegeu o computador", clique em
+   **Mais informações → Executar assim mesmo** (o instalador não tem assinatura paga).
+3. Quando o Windows pedir permissão de administrador, clique em **Sim**. É só para liberar o
+   Cordyhome no firewall em redes privadas.
+
+O instalador baixa a versão mais recente, instala o Python pelo [uv](https://docs.astral.sh/uv/),
+cria atalhos na área de trabalho e no menu Iniciar, configura o Cordyhome para iniciar junto com
+o Windows e abre o app no navegador. Não precisa de Git nem de Node.js. Para atualizar, rode o
+instalador de novo; os dados ficam em `%USERPROFILE%\.cordyhome` e são mantidos.
+
+O programa fica em `%LOCALAPPDATA%\Cordyhome`, com o log em `logs\cordyhome.log`. Para parar,
+use o atalho **Parar Cordyhome** no menu Iniciar.
+
+O pacote usado pelo instalador é gerado a cada atualização da `main` e publicado na release
+`latest` pelo workflow `.github/workflows/release.yml`.
+
 ### Opção 1: Docker (recomendado; Linux e Raspberry Pi)
 
 ```bash

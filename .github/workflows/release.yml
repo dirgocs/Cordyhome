@@ -1,0 +1,55 @@
+name: Pacote
+
+# Gera o pacote pronto para instalar (hub + interface já compilada) e o publica na
+# release "latest". O instalador do Windows baixa esse pacote, então o PC do usuário
+# não precisa de Node.js nem de Git.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Compilar a interface
+        working-directory: web
+        run: npm ci && npm run build
+      - name: Montar o pacote
+        run: |
+          mkdir -p dist/pkg/web
+          cp -r web/build dist/pkg/web/build
+          cp -r hub dist/pkg/hub
+          rm -rf dist/pkg/hub/tests
+          cp LICENSE README.md installer/windows/cordyhome.ico dist/pkg/
+          echo "$GITHUB_SHA" > dist/pkg/VERSION
+          (cd dist/pkg && zip -qr ../cordyhome.zip .)
+          cp installer/windows/Instalar-Cordyhome.cmd dist/
+      - name: Publicar na release "latest"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag -f latest
+          git push -f origin latest
+          if gh release view latest >/dev/null 2>&1; then
+            gh release upload latest dist/cordyhome.zip dist/Instalar-Cordyhome.cmd --clobber
+          else
+            gh release create latest dist/cordyhome.zip dist/Instalar-Cordyhome.cmd \
+              --title "Cordyhome (versão mais recente)" \
+              --notes "Para instalar no Windows, baixe **Instalar-Cordyhome.cmd** e dê dois cliques. Veja o README." \
+              --latest
+          fi
