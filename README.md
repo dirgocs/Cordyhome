@@ -30,7 +30,31 @@ executar as rotinas. A interface é aberta pelo navegador de qualquer aparelho d
 
 ## Instalação
 
-### Opção 1: Docker (recomendado; Linux e Raspberry Pi)
+### Windows: instalador
+
+1. Baixe o `Cordyhome-Windows.zip` da release
+   [**Instalador Windows**](https://github.com/dirgocs/Cordyhome/releases/tag/windows) (gerada a cada
+   atualização da `main`).
+2. Clique com o botão direito no ZIP → **Extrair tudo**.
+3. Na pasta extraída, dê dois cliques em **Instalar Cordyhome**. Se aparecer "O Windows protegeu o
+   computador", clique em **Mais informações → Executar assim mesmo**.
+4. Clique em **Sim** quando o Windows pedir permissão de administrador (libera o firewall só para a
+   rede de casa).
+
+O instalador baixa o Python (via [uv](https://docs.astral.sh/uv/)), cria um atalho na área de
+trabalho, faz o Cordyhome ligar junto com o Windows (sem janela aberta) e abre o app no navegador.
+Não precisa de Git nem de Node.js. Para atualizar, rode o instalador novo; os dados são mantidos.
+
+| | |
+|---|---|
+| Programa | `%LOCALAPPDATA%\Cordyhome` |
+| Dados | `%USERPROFILE%\.cordyhome` |
+| Registro (erros) | `%LOCALAPPDATA%\Cordyhome\cordyhome.log` |
+| Desinstalar | Menu Iniciar → Cordyhome → Desinstalar o Cordyhome |
+
+Para gerar o ZIP localmente: `cd web && npm ci && npm run build && cd .. && python windows/package.py`.
+
+### Docker (Linux e Raspberry Pi)
 
 ```bash
 git clone https://github.com/dirgocs/Cordyhome.git
@@ -42,9 +66,9 @@ Abra `http://IP-DO-COMPUTADOR:8420` e crie a sua conta. Os dados ficam em `./dat
 
 O `docker-compose.yml` usa `network_mode: host`, necessário para achar as tomadas na rede por
 broadcast UDP. No Docker Desktop para Windows e Mac, o modo host tem limitações; nesses sistemas,
-prefira a opção 2.
+prefira a instalação direta.
 
-### Opção 2: direto no computador (Windows, macOS, Linux)
+### Direto no computador (macOS, Linux, ou Windows sem o instalador)
 
 Requisitos: [uv](https://docs.astral.sh/uv/getting-started/installation/) (gerenciador Python)
 e [Node.js 22+](https://nodejs.org/).
@@ -128,6 +152,7 @@ hub/                       Python 3.11+ · FastAPI · SQLite
   cordyhome/services/      Estado e comandos (hub.py), energia, rotinas, alertas, vínculo Tuya
   cordyhome/api/           REST + WebSocket de tempo real
 web/                       SvelteKit (Svelte 5), SPA estática servida pelo hub
+windows/                   Instalador para Windows (scripts PowerShell + empacotador)
 docs/ARQUITETURA.md        Decisões de arquitetura e fases
 ```
 
