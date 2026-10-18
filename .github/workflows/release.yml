@@ -1,55 +1,94 @@
-name: Pacote
+name: Release
 
-# Gera o pacote pronto para instalar (hub + interface já compilada) e o publica na
-# release "latest". O instalador do Windows baixa esse pacote, então o PC do usuário
-# não precisa de Node.js nem de Git.
+# Gera o instalador do app de desktop para Windows (Tauri).
+# - Em pull requests: só compila e anexa o instalador ao run, para testar.
+# - Na main: se a versão do arquivo VERSION ainda não tem release, cria a release vX.Y.Z
+#   com o instalador. O link .../releases/latest/download/Cordyhome-Setup.exe sempre aponta
+#   para a versão mais recente.
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: release
+  group: release-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  UV_VERSION: 0.11.32
+
 jobs:
-  package:
-    runs-on: ubuntu-latest
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
+
+      - name: Versão
+        id: version
+        run: |
+          version=$(node scripts/version.mjs)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: |
+            web/package-lock.json
+            desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+
       - name: Compilar a interface
         working-directory: web
         run: npm ci && npm run build
-      - name: Montar o pacote
+
+      - name: Montar os recursos (hub, interface e uv)
+        shell: pwsh
         run: |
-          mkdir -p dist/pkg/web
-          cp -r web/build dist/pkg/web/build
-          cp -r hub dist/pkg/hub
-          rm -rf dist/pkg/hub/tests
-          cp LICENSE README.md installer/windows/cordyhome.ico dist/pkg/
-          echo "$GITHUB_SHA" > dist/pkg/VERSION
-          (cd dist/pkg && zip -qr ../cordyhome.zip .)
-          cp installer/windows/Instalar-Cordyhome.cmd dist/
-      - name: Publicar na release "latest"
+          node desktop/scripts/prepare-resources.mjs
+          Invoke-WebRequest "https://github.com/astral-sh/uv/releases/download/$env:UV_VERSION/uv-x86_64-pc-windows-msvc.zip" -OutFile uv.zip
+          Expand-Archive uv.zip -DestinationPath uv-tmp
+          Copy-Item uv-tmp/uv.exe desktop/src-tauri/resources/bin/uv.exe
+          Remove-Item uv.zip, uv-tmp -Recurse
+
+      - name: Compilar o app de desktop
+        working-directory: desktop
+        run: |
+          npm ci
+          npx tauri build --bundles nsis
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe ../Cordyhome-Setup.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cordyhome-Setup-${{ steps.version.outputs.version }}
+          path: Cordyhome-Setup.exe
+
+      - name: Publicar a release v${{ steps.version.outputs.version }}
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.version.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          git tag -f latest
-          git push -f origin latest
-          if gh release view latest >/dev/null 2>&1; then
-            gh release upload latest dist/cordyhome.zip dist/Instalar-Cordyhome.cmd --clobber
-          else
-            gh release create latest dist/cordyhome.zip dist/Instalar-Cordyhome.cmd \
-              --title "Cordyhome (versão mais recente)" \
-              --notes "Para instalar no Windows, baixe **Instalar-Cordyhome.cmd** e dê dois cliques. Veja o README." \
-              --latest
-          fi
+          # Notas: a seção da versão no CHANGELOG.md.
+          awk -v v="## $VERSION" '$0==v{on=1;next} /^## /{on=0} on' CHANGELOG.md > notes.md
+          printf '\n**Instalar no Windows:** baixe `Cordyhome-Setup.exe` e dê dois cliques. Para atualizar, rode o instalador novo por cima; os dados são mantidos.\n' >> notes.md
+          gh release create "v$VERSION" Cordyhome-Setup.exe \
+            --target "$GITHUB_SHA" --title "Cordyhome $VERSION" --notes-file notes.md --latest
+          # Remove a antiga release "latest" (instalador .cmd), substituída pelas versões numeradas.
+          gh release delete latest --cleanup-tag --yes || true

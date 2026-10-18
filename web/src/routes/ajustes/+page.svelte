@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { to } from '$lib/nav';
 	import { goto } from '$app/navigation';
-	import { ArrowDown, ArrowUp, Check, LogOut, Pencil, Plus, Radar, Trash2, X } from '@lucide/svelte';
+	import { ArrowDown, ArrowUp, Check, Download, LogOut, Pencil, Plus, Radar, Trash2, X } from '@lucide/svelte';
 	import { api } from '$lib/api';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Segmented from '$lib/components/Segmented.svelte';
@@ -10,6 +10,7 @@
 	import { errorMessage, home, session, toast } from '$lib/state.svelte';
 	import { applyTheme, getTheme, type Theme } from '$lib/theme';
 	import type { Room, Settings, TuyaStatus } from '$lib/types';
+	import { APP_VERSION, compareVersions, latestRelease, RELEASES_PAGE } from '$lib/version';
 
 	let settings = $state<Settings | null>(null);
 	let tuya = $state<TuyaStatus | null>(null);
@@ -28,9 +29,14 @@
 		}
 	}
 
+	// null = consultando; '' = não deu para consultar (sem internet).
+	let latest = $state<string | null>(null);
+	const updateAvailable = $derived(Boolean(latest) && compareVersions(latest!, APP_VERSION) > 0);
+
 	$effect(() => {
 		load();
 		api.get<string[]>('/timezones').then((t) => (timezones = t)).catch(() => {});
+		latestRelease().then((v) => (latest = v ?? ''));
 	});
 
 	async function saveSettings(patch: Partial<Settings>) {
@@ -253,6 +259,30 @@
 				}}
 			/>
 		</div>
+	</section>
+
+	<section class="card section">
+		<h2>Sobre</h2>
+		<p class="muted">
+			Cordyhome versão <strong>{APP_VERSION}</strong>.
+			{#if latest === null}
+				Procurando atualizações…
+			{:else if updateAvailable}
+				A versão <strong>{latest}</strong> já está disponível.
+			{:else if latest}
+				Você está na versão mais recente.
+			{:else}
+				Não deu para verificar atualizações agora.
+			{/if}
+		</p>
+		{#if updateAvailable}
+			<p class="muted small">
+				Baixe o instalador novo e rode por cima do atual. Seus dados, tomadas e rotinas são mantidos.
+			</p>
+			<div class="actions">
+				<a class="btn primary" href={RELEASES_PAGE} target="_blank" rel="noreferrer"><Download size={16} /> Baixar a versão {latest}</a>
+			</div>
+		{/if}
 	</section>
 
 	<section class="card section">

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Cordyhome</title>
+		<style>
+			:root {
+				color-scheme: light;
+				--bg: #f6f5f1;
+				--text: #191a17;
+				--text-2: #5a5a53;
+				--accent: #65a30d;
+				--track: #e5e3dc;
+				--danger: #b91c1c;
+			}
+			@media (prefers-color-scheme: dark) {
+				:root {
+					color-scheme: dark;
+					--bg: #131412;
+					--text: #f2f1ec;
+					--text-2: #b4b3ab;
+					--accent: #a3e635;
+					--track: #2a2b27;
+					--danger: #f87171;
+				}
+			}
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				min-height: 100vh;
+				display: grid;
+				place-items: center;
+				background: var(--bg);
+				color: var(--text);
+				font: 15px/1.5 'Segoe UI', system-ui, -apple-system, sans-serif;
+			}
+			main {
+				width: min(440px, 100% - 32px);
+				text-align: center;
+			}
+			img {
+				width: 72px;
+				height: 72px;
+			}
+			h1 {
+				margin: 16px 0 8px;
+				font-size: 22px;
+				font-weight: 600;
+			}
+			.spinner {
+				width: 28px;
+				height: 28px;
+				margin: 24px auto 16px;
+				border: 3px solid var(--track);
+				border-top-color: var(--accent);
+				border-radius: 50%;
+				animation: spin 0.9s linear infinite;
+			}
+			@keyframes spin {
+				to {
+					transform: rotate(360deg);
+				}
+			}
+			#status {
+				margin: 0;
+				color: var(--text-2);
+				white-space: pre-wrap;
+			}
+			.error .spinner {
+				display: none;
+			}
+			.error #status {
+				margin-top: 24px;
+				color: var(--danger);
+				text-align: left;
+				font-size: 13px;
+				max-height: 50vh;
+				overflow: auto;
+			}
+			.hint {
+				margin-top: 24px;
+				font-size: 13px;
+				color: var(--text-2);
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<img src="icon.svg" alt="" />
+			<h1>Cordyhome</h1>
+			<div class="spinner" aria-hidden="true"></div>
+			<p id="status" role="status">Abrindo o Cordyhome…</p>
+			<p class="hint">
+				Se o Windows perguntar sobre o firewall, clique em <strong>Permitir</strong>. Sem isso, as
+				tomadas e o celular não encontram o Cordyhome na rede.
+			</p>
+		</main>
+		<script>
+			// Chamado pelo app (Rust) a cada etapa da inicialização.
+			window.setStatus = (text, error) => {
+				document.getElementById('status').textContent = text;
+				document.body.classList.toggle('error', Boolean(error));
+			};
+		</script>
+	</body>
+</html>

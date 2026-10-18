@@ -17,3 +17,9 @@ data/
 *.db-shm
 .env
 .DS_Store
+
+# App de desktop (Tauri)
+desktop/node_modules/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+desktop/src-tauri/resources/

@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import asyncio
 
+from cordyhome import __version__
 from tests.conftest import add_device
+
+
+def test_health_reports_version_without_login(client):
+    assert client.get("/api/health").json() == {"ok": True, "version": __version__}
 
 
 def test_setup_login_logout_flow(client):
