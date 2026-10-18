@@ -354,7 +354,7 @@
 	<ScheduleForm open={scheduleOpen} schedule={editing} deviceId={id} onclose={() => (scheduleOpen = false)} onsaved={load} />
 
 	<Sheet open={removeOpen} title="Remover {device.name}?" onclose={() => (removeOpen = false)}>
-		<p class="muted">O histórico de consumo e as rotinas deste aparelho serão apagados. A tomada continua funcionando normalmente e pode ser importada de novo.</p>
+		<p class="muted">O histórico de consumo e as rotinas deste aparelho serão apagados. O aparelho continua funcionando normalmente e pode ser adicionado de novo.</p>
 		{#snippet footer()}
 			<button class="btn" type="button" onclick={() => (removeOpen = false)}>Cancelar</button>
 			<button class="btn primary" type="button" onclick={remove}>Remover</button>

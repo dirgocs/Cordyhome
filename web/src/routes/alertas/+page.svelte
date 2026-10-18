@@ -88,7 +88,7 @@
 	<section class="card empty">
 		{#if filter === 'unread'}<CircleCheck size={28} strokeWidth={1.6} />{:else}<BellOff size={28} strokeWidth={1.6} />{/if}
 		<h2>{filter === 'unread' ? 'Tudo em dia' : 'Nenhum alerta registrado'}</h2>
-		<p class="muted">O Cordyhome avisa aqui quando uma tomada sai do ar, consome demais ou não obedece a um comando.</p>
+		<p class="muted">O Cordyhome avisa aqui quando um aparelho sai do ar, consome demais ou não obedece a um comando.</p>
 	</section>
 {:else}
 	<ul class="card list">
