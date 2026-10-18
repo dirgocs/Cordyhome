@@ -83,7 +83,9 @@ class TuyaCloud:
         token = response["result"]["qrcode"]
         self._pending[token] = PendingLogin(user_code=user_code, token=token)
         qr = segno.make(f"tuyaSmart--qrLogin?token={token}", error="m")
-        svg = qr.svg_inline(scale=6, border=2, dark="#111", light="#fff")
+        # Sem tamanho fixo (só viewBox): a interface escala o QR para caber no quadro inteiro.
+        # Com largura fixa, tokens maiores geravam um QR maior que o quadro e ele saía cortado.
+        svg = qr.svg_inline(border=2, dark="#111", light="#fff", omitsize=True)
         return token, svg
 
     async def poll_login(self, token: str) -> dict[str, Any] | None:

@@ -69,8 +69,14 @@ def fake_cloud():
 
 
 @pytest.fixture
-def api(fake_cloud, monkeypatch):
-    async def fake_scan(scantime=10, want_ids=None):
+def scans():
+    return []
+
+
+@pytest.fixture
+def api(fake_cloud, scans, monkeypatch):
+    async def fake_scan(scantime=10, want_ids=None, networks=None, keys=None):
+        scans.append({"want_ids": want_ids, "networks": networks, "keys": keys})
         return [discovery.LanDevice(id="dev1", ip="192.168.0.50", version=3.4)]
 
     monkeypatch.setattr(tuya_link, "scan_lan", fake_scan)
@@ -121,3 +127,52 @@ def test_full_link_and_import_flow(api, fake_cloud):
     assert client.delete("/api/tuya").status_code == 204
     assert client.get("/api/tuya").json()["linked"] is False
     assert svc.db.scalar("SELECT COUNT(*) FROM devices") == 2  # aparelhos continuam
+
+
+def test_scan_covers_configured_networks_with_account_keys(api, fake_cloud, scans):
+    client, svc = api
+    fake_cloud.confirmed = True
+    client.post("/api/tuya/login", json={"user_code": "abc123"})
+    client.get("/api/tuya/login/tok")
+
+    client.get("/api/tuya/devices")
+    assert scans[-1]["networks"] == []  # sem faixa configurada: só broadcast
+
+    networks = ["192.168.20.7/24", " 192.168.20.0/24"]
+    r = client.patch("/api/settings", json={"lan_networks": networks})
+    assert r.status_code == 200 and r.json()["lan_networks"] == ["192.168.20.0/24"]
+    client.get("/api/tuya/devices")
+    assert scans[-1]["networks"] == ["192.168.20.0/24"]
+    assert scans[-1]["keys"] == {"dev1": "key-1", "dev2": "key-2"}  # câmera sem chave fica fora
+
+    client.post("/api/tuya/import", json={"devices": [{"id": "dev1"}, {"id": "dev2"}]})
+    assert client.post("/api/tuya/rescan").status_code == 200
+    assert scans[-1]["keys"] == {"dev1": "key-1", "dev2": "key-2"}
+    assert sorted(scans[-1]["want_ids"]) == ["dev1", "dev2"]
+
+
+@pytest.mark.parametrize("bad", ["8.8.8.0/24", "10.0.0.0/16", "abc", "fd00::/64"])
+def test_rejects_invalid_networks(api, bad):
+    client, svc = api
+    assert client.patch("/api/settings", json={"lan_networks": [bad]}).status_code == 422
+    assert svc.settings.get().lan_networks == []
+
+
+def test_force_scan_uses_networks_and_keys(monkeypatch):
+    calls = []
+
+    def fake_devices(**kwargs):
+        calls.append(kwargs)
+        return {
+            "dev1": {"ip": "192.168.20.31", "version": "3.4"},
+            "": {"ip": "192.168.20.99", "version": 0.0},  # respondeu mas nenhuma chave serviu
+        }
+
+    monkeypatch.setattr(discovery.scanner, "devices", fake_devices)
+    found = discovery._scan(1, ["dev1"], ["192.168.20.0/24"], {"dev1": "key-1"})
+    assert found == [discovery.LanDevice(id="dev1", ip="192.168.20.31", version=3.4)]
+    assert calls[0]["forcescan"] == ["192.168.20.0/24"]
+    assert calls[0]["tuyadevices"] == [{"id": "dev1", "key": "key-1", "name": ""}]
+
+    discovery._scan(1, ["dev1"], [], {"dev1": "key-1"})
+    assert calls[1]["forcescan"] is False and calls[1]["tuyadevices"] == []

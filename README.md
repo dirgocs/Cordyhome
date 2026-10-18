@@ -111,6 +111,21 @@ apenas para ler a lista de aparelhos e as chaves locais.
 - Se o roteador trocar o IP de uma tomada, o Cordyhome a procura sozinho na rede a cada 10
   minutos. Também dá para usar **Ajustes → Procurar na rede**.
 
+### Tomadas numa rede separada (VLAN de IoT)
+
+O Cordyhome acha as tomadas pelos avisos de broadcast que elas mandam, e broadcast não passa de
+uma rede para outra. Se as tomadas ficam numa rede só para IoT e o computador do Cordyhome em
+outra:
+
+1. No roteador, permita que o computador do Cordyhome acesse a rede das tomadas na **porta TCP
+   6668** (no UniFi: uma regra de firewall da rede principal para a rede IoT; a resposta volta
+   por ser uma conexão já estabelecida).
+2. Em **Ajustes → Tomadas Tuya → Rede das tomadas**, informe a faixa da rede IoT, por exemplo
+   `192.168.20.0/24` (até /22, no máximo 4 faixas).
+
+O Cordyhome testa a porta 6668 em cada endereço da faixa e reconhece cada tomada pela chave local
+que veio da conta. Vale reservar IPs fixos para as tomadas no DHCP do roteador.
+
 ## Acesso de fora de casa
 
 **Não abra portas no roteador.** Use o [Tailscale](https://tailscale.com/), gratuito para uso
