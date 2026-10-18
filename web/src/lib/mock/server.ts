@@ -136,10 +136,13 @@ function makeDevice(id: number, p: Profile, roomId: number | null, on: boolean):
 		nominal_watts: null,
 		power_alert_watts: p.alert ?? null,
 		confirm_off: !!p.protect,
+		capabilities:
+			p.kind === 'light' ? ['power', 'energy', 'brightness', 'color_temp', 'color'] : ['power', 'energy'],
+		state: p.kind === 'light' ? { brightness: 80, color_temp: 30, color: { h: 30, s: 70, v: 100 }, mode: 'white' } : {},
 		info: {
 			ip: `192.168.0.${110 + id}`,
 			protocol_version: 3.4,
-			product_name: 'Tomada Inteligente Steck 10A',
+			product_name: p.kind === 'light' ? 'Lâmpada Inteligente RGB' : 'Tomada Inteligente Steck 10A',
 			has_energy_meter: true
 		}
 	};
@@ -414,7 +417,7 @@ function setPower(target: Sim, on: boolean): Device {
 	}
 	target.device.is_on = on;
 	target.device.power_w = Math.round(livePower(target) * 10) / 10;
-	const copy = { ...target.device, info: { ...target.device.info } };
+	const copy = { ...target.device, state: { ...target.device.state }, info: { ...target.device.info } };
 	emit('device', copy);
 	return copy;
 }
@@ -589,6 +592,12 @@ async function handle(method: string, path: string, body: any): Promise<unknown>
 			return undefined;
 		case 'POST /devices/:id/power':
 			return setPower(sim(id), !!body.on);
+		case 'POST /devices/:id/state': {
+			const s = sim(id);
+			if (!s.device.online) throw new MockError(502, s.device.last_error ?? 'Sem resposta.');
+			s.device.state = { ...s.device.state, ...body, mode: body.color ? 'colour' : 'white' };
+			return setPower(s, true);
+		}
 		case 'POST /devices/:id/toggle':
 			return setPower(sim(id), !sim(id).device.is_on);
 		case 'POST /devices/:id/refresh': {

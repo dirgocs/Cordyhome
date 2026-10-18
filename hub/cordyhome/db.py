@@ -120,6 +120,10 @@ MIGRATIONS: list[str] = [
         value TEXT NOT NULL
     );
     """,
+    # 0.5.0: estado além do liga/desliga (brilho, cor…), em JSON.
+    """
+    ALTER TABLE devices ADD COLUMN state TEXT NOT NULL DEFAULT '{}';
+    """,
 ]
 
 

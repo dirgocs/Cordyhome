@@ -7,6 +7,7 @@
 	import AreaChart from '$lib/components/AreaChart.svelte';
 	import ColumnChart from '$lib/components/ColumnChart.svelte';
 	import KindIcon from '$lib/components/KindIcon.svelte';
+	import LightControls from '$lib/components/LightControls.svelte';
 	import ScheduleForm from '$lib/components/ScheduleForm.svelte';
 	import ScheduleRow from '$lib/components/ScheduleRow.svelte';
 	import Sheet from '$lib/components/Sheet.svelte';
@@ -127,7 +128,8 @@
 		off: 'Desligado',
 		failed: 'Comando falhou',
 		online: 'Voltou a responder',
-		offline: 'Perdeu a conexão'
+		offline: 'Perdeu a conexão',
+		state: 'Ajustado'
 	};
 	const sourceText: Record<string, string> = {
 		user: 'pelo app',
@@ -188,6 +190,8 @@
 			</button>
 		</div>
 	{/if}
+
+	<LightControls {device} />
 
 	<section class="readings card">
 		<div class="reading main-reading">
@@ -302,6 +306,8 @@
 					<option value="plug">Tomada</option>
 					<option value="light">Iluminação</option>
 					<option value="switch">Interruptor</option>
+					<option value="relay">Relé</option>
+					<option value="climate">Ar-condicionado</option>
 					<option value="other">Outro</option>
 				</select>
 			</label>

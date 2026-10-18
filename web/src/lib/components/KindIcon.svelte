@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Lightbulb, Plug, Power, Cpu } from '@lucide/svelte';
+	import { AirVent, CircuitBoard, Cpu, Lightbulb, Plug, Power } from '@lucide/svelte';
 	import type { DeviceKind } from '$lib/types';
 
 	let { kind, size = 20 }: { kind: DeviceKind; size?: number } = $props();
-	const icons = { plug: Plug, light: Lightbulb, switch: Power, other: Cpu };
+	const icons = { plug: Plug, light: Lightbulb, switch: Power, relay: CircuitBoard, climate: AirVent, other: Cpu };
 	const Icon = $derived(icons[kind] ?? Cpu);
 </script>
 

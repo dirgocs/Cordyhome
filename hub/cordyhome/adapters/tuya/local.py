@@ -89,6 +89,19 @@ class TuyaLocalAdapter:
             values["is_on"] = on
         return DeviceReading(online=True, raw={"dps": dps}, **values)
 
+    def capabilities(self, config: dict[str, Any]) -> list[str]:
+        return DpMap.from_dict(config.get("dp_map")).capabilities
+
+    async def set_state(self, device: DeviceRef, changes: dict[str, Any]) -> DeviceReading | None:
+        mapping = DpMap.from_dict(device.config.get("dp_map"))
+        dps = mapping.state_dps(changes)
+        result, _ = await self._run(device, lambda dev: dev.set_multiple_values(dps))
+        values = parse_dps(result.get("dps") or {}, mapping)
+        # A resposta pode trazer só parte dos DPs: o que foi pedido vale até a próxima leitura.
+        values.setdefault("is_on", True)
+        values["state"] = {**changes, **values.get("state", {})}
+        return DeviceReading(online=True, raw={"dps": result.get("dps")}, **values)
+
     async def _run(self, device: DeviceRef, op) -> tuple[dict[str, Any], float]:
         cfg = device.config
         if not cfg.get("ip"):

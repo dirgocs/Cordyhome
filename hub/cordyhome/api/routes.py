@@ -17,7 +17,7 @@ from .deps import Services, current_user, services, websocket_user
 router = APIRouter(prefix="/api", dependencies=[Depends(current_user)])
 ws_router = APIRouter()
 
-DeviceKind = Literal["plug", "light", "switch", "other"]
+DeviceKind = Literal["plug", "light", "switch", "relay", "climate", "other"]
 
 
 # ============================================================================ visão geral
@@ -92,6 +92,18 @@ class DevicePatch(BaseModel):
 
 class PowerBody(BaseModel):
     on: bool
+
+
+class ColorBody(BaseModel):
+    h: int = Field(ge=0, le=360)
+    s: int = Field(ge=0, le=100)
+    v: int = Field(ge=1, le=100)
+
+
+class StateBody(BaseModel):
+    brightness: int | None = Field(None, ge=1, le=100)
+    color_temp: int | None = Field(None, ge=0, le=100)
+    color: ColorBody | None = None
 
 
 @router.get("/devices")
@@ -182,6 +194,14 @@ def delete_device(device_id: int, svc: Services = Depends(services)):
 @router.post("/devices/{device_id}/power")
 async def device_power(device_id: int, body: PowerBody, svc: Services = Depends(services)):
     return await svc.hub.set_power(device_id, body.on)
+
+
+@router.post("/devices/{device_id}/state")
+async def device_state(device_id: int, body: StateBody, svc: Services = Depends(services)):
+    changes = body.model_dump(exclude_none=True)
+    if not changes:
+        raise HTTPException(400, "Nada para alterar.")
+    return await svc.hub.set_state(device_id, changes)
 
 
 @router.post("/devices/{device_id}/toggle")
