@@ -1,6 +1,6 @@
 [package]
 name = "cordyhome-desktop"
-version = "0.2.0"
+version = "0.2.1"
 description = "Cordyhome para desktop: janela do app, ícone na bandeja e o hub em segundo plano"
 license = "MIT"
 edition = "2021"
@@ -15,6 +15,9 @@ tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
 serde_json = "1"
 command-group = "5"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_UI_WindowsAndMessaging"] }
 
 [profile.release]
 codegen-units = 1
