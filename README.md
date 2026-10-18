@@ -30,24 +30,27 @@ executar as rotinas. A interface é aberta pelo navegador de qualquer aparelho d
 
 ## Instalação
 
-### Windows: instalador de dois cliques
+### Windows: app de desktop
 
-1. Baixe o [**Instalar-Cordyhome.cmd**](https://github.com/dirgocs/Cordyhome/releases/latest/download/Instalar-Cordyhome.cmd).
-2. Dê dois cliques no arquivo. Se aparecer "O Windows protegeu o computador", clique em
+1. Baixe o [**Cordyhome-Setup.exe**](https://github.com/dirgocs/Cordyhome/releases/latest/download/Cordyhome-Setup.exe).
+2. Dê dois cliques. Se aparecer "O Windows protegeu o computador", clique em
    **Mais informações → Executar assim mesmo** (o instalador não tem assinatura paga).
-3. Quando o Windows pedir permissão de administrador, clique em **Sim**. É só para liberar o
-   Cordyhome no firewall em redes privadas.
+3. Na primeira abertura, o app prepara o Python (alguns minutos). Se o Windows perguntar sobre o
+   firewall, clique em **Permitir**: é o que deixa as tomadas e o celular acharem o Cordyhome.
 
-O instalador baixa a versão mais recente, instala o Python pelo [uv](https://docs.astral.sh/uv/),
-cria atalhos na área de trabalho e no menu Iniciar, configura o Cordyhome para iniciar junto com
-o Windows e abre o app no navegador. Não precisa de Git nem de Node.js. Para atualizar, rode o
-instalador de novo; os dados ficam em `%USERPROFILE%\.cordyhome` e são mantidos.
+O app abre numa janela própria. Ao fechar a janela, ele continua no ícone perto do relógio,
+gravando o consumo e rodando as rotinas; para encerrar, use **Sair** nesse ícone. Ele também
+inicia com o Windows (dá para desligar no mesmo menu). Não precisa de Git, Node.js nem Python
+instalados: o instalador traz o [uv](https://docs.astral.sh/uv/), que baixa um Python 3.12 só
+para o Cordyhome, num venv isolado.
 
-O programa fica em `%LOCALAPPDATA%\Cordyhome`, com o log em `logs\cordyhome.log`. Para parar,
-use o atalho **Parar Cordyhome** no menu Iniciar.
+- Dados (banco, contas, histórico): `%USERPROFILE%\.cordyhome`, mantidos em atualizações.
+- Python do app e logs: `%LOCALAPPDATA%\com.cordyhome.app` (`logs\cordyhome.log`).
+- Para atualizar: em **Ajustes → Sobre** o app avisa quando há versão nova; baixe e rode o
+  instalador por cima.
 
-O pacote usado pelo instalador é gerado a cada atualização da `main` e publicado na release
-`latest` pelo workflow `.github/workflows/release.yml`.
+O código do app está em `desktop/` (Tauri 2). O instalador é gerado pelo workflow
+`.github/workflows/release.yml`.
 
 ### Opção 1: Docker (recomendado; Linux e Raspberry Pi)
 
@@ -122,6 +125,19 @@ pessoal:
 O acesso é protegido pelo login do Cordyhome: senha com hash scrypt, sessão em cookie HttpOnly,
 limite de tentativas e bloqueio de requisições vindas de outros sites.
 
+## Versões
+
+O Cordyhome segue [versionamento semântico](https://semver.org/lang/pt-BR/). A versão fica no
+arquivo `VERSION`, e o [CHANGELOG.md](CHANGELOG.md) descreve cada uma. Para lançar uma versão:
+
+```bash
+node scripts/version.mjs 0.3.0   # muda hub, interface e app de desktop (e o uv.lock)
+# descreva as mudanças em "## 0.3.0" no CHANGELOG.md e faça o merge na main
+```
+
+Na `main`, o workflow **Release** cria a release `v0.3.0` com o instalador assim que essa versão
+aparece. O CI confere se todos os arquivos estão na mesma versão.
+
 ## Desenvolvimento
 
 ```bash
@@ -147,6 +163,8 @@ hub/                       Python 3.11+ · FastAPI · SQLite
   cordyhome/services/      Estado e comandos (hub.py), energia, rotinas, alertas, vínculo Tuya
   cordyhome/api/           REST + WebSocket de tempo real
 web/                       SvelteKit (Svelte 5), SPA estática servida pelo hub
+desktop/                   App de desktop (Tauri 2): janela, bandeja e o hub embutido
+scripts/version.mjs        Versão única de hub, interface e app de desktop
 docs/ARQUITETURA.md        Decisões de arquitetura e fases
 ```
 

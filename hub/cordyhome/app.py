@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from . import __version__
 from .adapters.base import Adapter, AdapterError
 from .adapters.simulator import SimulatorAdapter
 from .adapters.tuya.cloud import TuyaCloud
@@ -97,7 +98,7 @@ def create_app(
 
     @app.get("/api/health", include_in_schema=False)
     def health():
-        return {"ok": True}
+        return {"ok": True, "version": __version__}
 
     app.include_router(auth_routes.router)
     app.include_router(routes.router)

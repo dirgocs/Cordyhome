@@ -1,12 +1,16 @@
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import pkg from './package.json' with { type: 'json' };
 
 const hub = process.env.CORDYHOME_HUB ?? 'http://127.0.0.1:8420';
 // Build de protótipo (artefato): rotas por hash e hub simulado no navegador.
 const prototype = process.env.VITE_PROTOTYPE === '1';
 
 export default defineConfig({
+	define: {
+		__APP_VERSION__: JSON.stringify(pkg.version)
+	},
 	plugins: [
 		sveltekit({
 			compilerOptions: {
