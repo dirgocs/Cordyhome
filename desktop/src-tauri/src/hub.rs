@@ -61,6 +61,7 @@ fn spawn_group(cmd: &mut Command) -> std::io::Result<GroupChild> {
 
 pub fn run(app: AppHandle) {
     if let Err(message) = start(&app) {
+        crate::diag::log(&format!("Erro ao iniciar o hub: {message}"));
         // Repete por alguns segundos caso a tela de carregamento ainda esteja abrindo.
         for _ in 0..5 {
             status(&app, &message, true);
@@ -207,6 +208,7 @@ fn healthy() -> bool {
 }
 
 fn open_hub(app: &AppHandle) {
+    crate::diag::log("Hub respondendo; abrindo a interface");
     if let Some(window) = app.get_webview_window("main") {
         let url = Url::parse(&format!("http://localhost:{PORT}/")).expect("URL válida");
         let _ = window.navigate(url);
@@ -214,6 +216,9 @@ fn open_hub(app: &AppHandle) {
 }
 
 fn status(app: &AppHandle, message: &str, error: bool) {
+    if !error {
+        crate::diag::log(message);
+    }
     if let Some(window) = app.get_webview_window("main") {
         let text = serde_json::to_string(message).unwrap_or_default();
         let _ = window.eval(format!("window.setStatus && window.setStatus({text}, {error})"));

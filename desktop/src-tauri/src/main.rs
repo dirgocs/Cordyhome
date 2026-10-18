@@ -1,6 +1,7 @@
 // Sem console extra no Windows em produção.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod diag;
 mod hub;
 
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
@@ -12,10 +13,13 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 const HIDDEN_ARG: &str = "--hidden";
 
 fn show_main(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.unminimize();
-        let _ = window.show();
-        let _ = window.set_focus();
+    match app.get_webview_window("main") {
+        Some(window) => {
+            let _ = window.unminimize();
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+        None => diag::log("Janela principal não encontrada"),
     }
 }
 
@@ -91,6 +95,12 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 }
 
 fn main() {
+    diag::install_panic_hook();
+    diag::log(&format!(
+        "Abrindo o Cordyhome {} (args: {:?})",
+        env!("CARGO_PKG_VERSION"),
+        std::env::args().skip(1).collect::<Vec<_>>()
+    ));
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app)))
         .plugin(tauri_plugin_autostart::init(
@@ -101,8 +111,13 @@ fn main() {
         .setup(|app| {
             let handle = app.handle().clone();
             configure_autostart_once(&handle);
-            build_tray(&handle)?;
-            if !std::env::args().any(|arg| arg == HIDDEN_ARG) {
+            if let Err(e) = build_tray(&handle) {
+                // Sem ícone na bandeja o app ainda funciona pela janela.
+                diag::log(&format!("Falha ao criar o ícone da bandeja: {e}"));
+            }
+            if std::env::args().any(|arg| arg == HIDDEN_ARG) {
+                diag::log("Iniciado com o Windows: só na bandeja");
+            } else {
                 show_main(&handle);
             }
             std::thread::spawn(move || hub::run(handle));

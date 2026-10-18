@@ -533,7 +533,7 @@ dependencies = [
 
 [[package]]
 name = "cordyhome-desktop"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "command-group",
  "serde_json",
@@ -541,6 +541,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-autostart",
  "tauri-plugin-single-instance",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

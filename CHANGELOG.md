@@ -3,6 +3,11 @@
 O Cordyhome segue [versionamento semântico](https://semver.org/lang/pt-BR/): enquanto a versão
 começar com 0, mudanças de recurso sobem o número do meio e correções sobem o último.
 
+## 0.2.1
+
+- App de desktop: registro de diagnóstico em `%LOCALAPPDATA%\com.cordyhome.app\logs\app.log`
+  e mensagem de erro na tela se o app não conseguir abrir no Windows.
+
 ## 0.2.0
 
 - App de desktop para Windows (Tauri): instalador `.exe` único, janela própria, ícone na bandeja,
