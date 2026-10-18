@@ -1,6 +1,6 @@
 [package]
 name = "cordyhome-desktop"
-version = "0.3.0"
+version = "0.4.0"
 description = "Cordyhome para desktop: janela do app, ícone na bandeja e o hub em segundo plano"
 license = "MIT"
 edition = "2021"

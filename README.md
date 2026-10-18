@@ -92,7 +92,7 @@ Isso libera a porta 8420 da interface e as portas UDP 6666/6667 da descoberta da
 ## Conectando as tomadas Tuya
 
 1. As tomadas precisam estar pareadas no app **Tuya Smart** ou **Smart Life** (gratuitos).
-2. No Cordyhome: **Ajustes → Tomadas Tuya → Conectar conta**.
+2. No Cordyhome: **Adicionar aparelhos → Tuya / Smart Life** (no início ou em Ajustes).
 3. No app: **Eu → configurações → Conta e segurança → Código de usuário**. Copie o código para o
    Cordyhome.
 4. Escaneie o QR code com o app (**Eu → ícone de leitura** no canto superior direito). Faça esta
@@ -106,10 +106,10 @@ apenas para ler a lista de aparelhos e as chaves locais.
 
 **Depois da importação:**
 - Tudo acontece pela rede local; a internet pode cair que o controle e a medição continuam.
-- Se uma tomada for **pareada de novo** no app, a chave muda. Use **Ajustes → Adicionar ou
-  sincronizar** para atualizar.
+- Se uma tomada for **pareada de novo** no app, a chave muda. Use **Ajustes → Integrações →
+  Sincronizar** para atualizar.
 - Se o roteador trocar o IP de uma tomada, o Cordyhome a procura sozinho na rede a cada 10
-  minutos. Também dá para usar **Ajustes → Procurar na rede**.
+  minutos. Também dá para usar **Ajustes → Integrações → Procurar na rede**.
 
 ### Tomadas numa rede separada (VLAN de IoT)
 
@@ -120,7 +120,7 @@ outra:
 1. No roteador, permita que o computador do Cordyhome acesse a rede das tomadas na **porta TCP
    6668** (no UniFi: uma regra de firewall da rede principal para a rede IoT; a resposta volta
    por ser uma conexão já estabelecida).
-2. Em **Ajustes → Tomadas Tuya → Rede das tomadas**, informe a faixa da rede IoT, por exemplo
+2. Em **Ajustes → Rede dos aparelhos**, informe a faixa da rede IoT, por exemplo
    `192.168.20.0/24` (até /22, no máximo 4 faixas).
 
 O Cordyhome testa a porta 6668 em cada endereço da faixa e reconhece cada tomada pela chave local

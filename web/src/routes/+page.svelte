@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { to } from '$lib/nav';
-	import { ArrowRight, Bell, Plug, Power, PowerOff } from '@lucide/svelte';
+	import { ArrowRight, Bell, Plug, Plus, Power, PowerOff } from '@lucide/svelte';
 	import { api } from '$lib/api';
 	import AreaChart from '$lib/components/AreaChart.svelte';
 	import DeviceTile from '$lib/components/DeviceTile.svelte';
@@ -82,10 +82,10 @@
 		<span class="onboarding-icon"><Plug size={26} strokeWidth={1.6} /></span>
 		<h1>Vamos conectar sua casa</h1>
 		<p class="muted">
-			Traga suas tomadas Tuya / Smart Life para o Cordyhome. Leva uns 2 minutos, e depois disso
-			elas funcionam pela sua rede local, sem nuvem e sem assinatura.
+			Traga seus aparelhos inteligentes para o Cordyhome. Leva uns 2 minutos, e depois disso
+			eles funcionam pela sua rede local, sem nuvem e sem assinatura.
 		</p>
-		<a class="btn primary" href={to('/ajustes/tuya')}>Conectar tomadas <ArrowRight size={17} /></a>
+		<a class="btn primary" href={to('/adicionar')}>Adicionar aparelhos <ArrowRight size={17} /></a>
 	</section>
 {:else}
 	<p class="date eyebrow">{today}</p>
@@ -137,7 +137,10 @@
 	{/if}
 
 	<div class="toolbar" id="issues">
-		<h2>Aparelhos</h2>
+		<div class="toolbar-title">
+			<h2>Aparelhos</h2>
+			<a class="btn sm ghost" href={to('/adicionar')}><Plus size={16} /> Adicionar</a>
+		</div>
 		<div class="filters" role="radiogroup" aria-label="Filtrar aparelhos">
 			{#each [['all', 'Todos'], ['on', 'Ligados'], ['issues', 'Com problema']] as [value, label] (value)}
 				<button type="button" role="radio" aria-checked={filter === value} onclick={() => (filter = value as Filter)}>
@@ -281,6 +284,11 @@
 		margin-left: auto;
 	}
 
+	.toolbar-title {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
 	.toolbar {
 		display: flex;
 		align-items: center;

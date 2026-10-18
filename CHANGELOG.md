@@ -3,6 +3,13 @@
 O Cordyhome segue [versionamento semântico](https://semver.org/lang/pt-BR/): enquanto a versão
 começar com 0, mudanças de recurso sobem o número do meio e correções sobem o último.
 
+## 0.4.0
+
+- Nova tela **Adicionar aparelhos**, aberta pelo início e por Ajustes: você escolhe de onde vêm
+  os aparelhos (por enquanto Tuya / Smart Life), e novas integrações entram na mesma lista.
+- Ajustes ganha as seções **Integrações** e **Rede dos aparelhos**, no lugar de "Tomadas Tuya".
+- Os textos do app falam em aparelhos, não só em tomadas.
+
 ## 0.3.0
 
 - Tomadas numa rede separada (VLAN de IoT): novo campo **Ajustes → Tomadas Tuya → Rede das

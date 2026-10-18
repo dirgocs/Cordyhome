@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { to } from '$lib/nav';
 	import { goto } from '$app/navigation';
-	import { ArrowDown, ArrowUp, Check, Download, LogOut, Pencil, Plus, Radar, Trash2, X } from '@lucide/svelte';
+	import { ArrowDown, ArrowUp, Check, Download, LogOut, Pencil, Plus, Radar, RefreshCw, Trash2, X } from '@lucide/svelte';
 	import { api } from '$lib/api';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import Segmented from '$lib/components/Segmented.svelte';
@@ -87,7 +87,7 @@
 		try {
 			await api.del('/tuya');
 			unlinkOpen = false;
-			toast('Conta Tuya desvinculada. As tomadas continuam funcionando.');
+			toast('Conta Tuya desvinculada. Os aparelhos continuam funcionando.');
 			load();
 		} catch (e) {
 			toast(errorMessage(e), 'error');
@@ -164,42 +164,51 @@
 	<section class="card section">
 		<div class="section-head">
 			<div>
-				<h2>Tomadas Tuya</h2>
-				<p class="muted">
-					{#if tuya?.linked}
-						Conta vinculada{tuya.username ? ` (${tuya.username})` : ''}{tuya.linked_at ? ` em ${dateShort(tuya.linked_at * 1000)}` : ''} · {tuya.imported_devices} aparelhos importados
-					{:else}
-						Conecte a conta do app Tuya Smart / Smart Life para importar as tomadas. O controle depois é local.
-					{/if}
-				</p>
+				<h2>Integrações</h2>
+				<p class="muted">De onde vêm os aparelhos. Depois de conectados, o controle e a medição são locais.</p>
 			</div>
+			<a class="btn primary" href={to('/adicionar')}><Plus size={16} /> Adicionar aparelhos</a>
 		</div>
-		<div class="actions">
-			<a class="btn primary" href={to('/ajustes/tuya')}><Plus size={16} /> {tuya?.linked ? 'Adicionar ou sincronizar' : 'Conectar conta'}</a>
-			{#if tuya?.imported_devices}
-				<button class="btn" type="button" onclick={rescan} disabled={scanning}>
-					<Radar size={16} /> {scanning ? 'Procurando…' : 'Procurar na rede'}
-				</button>
-			{/if}
-			{#if tuya?.linked}
-				<button class="btn ghost danger" type="button" onclick={() => (unlinkOpen = true)}>Desvincular</button>
-			{/if}
-		</div>
-		{#if settings}
+		{#if tuya?.linked}
+			<div class="integration">
+				<div>
+					<strong>Tuya / Smart Life</strong>
+					<p class="muted small">
+						Conta vinculada{tuya.username ? ` (${tuya.username})` : ''}{tuya.linked_at ? ` em ${dateShort(tuya.linked_at * 1000)}` : ''} · {tuya.imported_devices} {tuya.imported_devices === 1 ? 'aparelho' : 'aparelhos'}
+					</p>
+				</div>
+				<div class="actions">
+					<a class="btn sm" href={to('/adicionar/tuya')}><RefreshCw size={15} /> Sincronizar</a>
+					{#if tuya.imported_devices}
+						<button class="btn sm" type="button" onclick={rescan} disabled={scanning}>
+							<Radar size={15} /> {scanning ? 'Procurando…' : 'Procurar na rede'}
+						</button>
+					{/if}
+					<button class="btn sm ghost danger" type="button" onclick={() => (unlinkOpen = true)}>Desvincular</button>
+				</div>
+			</div>
+		{:else}
+			<p class="muted small">Nenhuma integração conectada ainda.</p>
+		{/if}
+	</section>
+
+	{#if settings}
+		<section class="card section">
+			<h2>Rede dos aparelhos</h2>
 			<form class="networks" onsubmit={saveNetworks}>
 				<label class="field">
-					<span>Rede das tomadas (opcional)</span>
+					<span>Faixas de IP (opcional)</span>
 					<input class="input mono" bind:value={networks} placeholder="192.168.20.0/24" autocomplete="off" spellcheck="false" />
 				</label>
 				<button class="btn" type="submit">Salvar</button>
 			</form>
 			<p class="muted small">
-				Preencha se as tomadas ficam numa rede separada da do computador, como uma rede só para IoT.
-				O Cordyhome passa a procurá-las nessa faixa (separe várias com vírgula). O roteador precisa
-				permitir que este computador acesse essa rede na porta TCP 6668.
+				Preencha se os aparelhos ficam numa rede separada da do computador, como uma rede só para IoT.
+				O Cordyhome passa a procurá-los nessas faixas (separe várias com vírgula). O roteador precisa
+				permitir que este computador acesse essa rede; para Tuya, na porta TCP 6668.
 			</p>
-		{/if}
-	</section>
+		</section>
+	{/if}
 
 	<section class="card section">
 		<h2>Cômodos</h2>
@@ -304,7 +313,7 @@
 		</p>
 		{#if updateAvailable}
 			<p class="muted small">
-				Baixe o instalador novo e rode por cima do atual. Seus dados, tomadas e rotinas são mantidos.
+				Baixe o instalador novo e rode por cima do atual. Seus dados, aparelhos e rotinas são mantidos.
 			</p>
 			<div class="actions">
 				<a class="btn primary" href={RELEASES_PAGE} target="_blank" rel="noreferrer"><Download size={16} /> Baixar a versão {latest}</a>
@@ -327,8 +336,8 @@
 
 <Sheet open={unlinkOpen} title="Desvincular conta Tuya?" onclose={() => (unlinkOpen = false)}>
 	<p class="muted">
-		As tomadas importadas continuam funcionando localmente. Você só precisará vincular de novo para
-		importar tomadas novas ou atualizar chaves de tomadas pareadas outra vez.
+		Os aparelhos já adicionados continuam funcionando localmente. Você só precisará vincular de novo
+		para trazer aparelhos novos ou atualizar as chaves de aparelhos pareados outra vez.
 	</p>
 	{#snippet footer()}
 		<button class="btn" type="button" onclick={() => (unlinkOpen = false)}>Cancelar</button>
@@ -363,6 +372,22 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 8px;
+	}
+	.section-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 12px;
+	}
+	.integration {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding-top: 14px;
+		border-top: 1px solid var(--border);
 	}
 	.rooms {
 		list-style: none;
