@@ -31,6 +31,10 @@ class FakeTinyDevice:
     def set_status(self, on, switch=1):
         return {"dps": {str(switch): on}}
 
+    def set_multiple_values(self, data):
+        FakeTinyDevice.calls.append(("set", data))
+        return {"dps": {"22": data.get("22", 500)}}  # resposta parcial, como em muitas lâmpadas
+
     def close(self):
         pass
 
@@ -71,3 +75,21 @@ def test_set_power_uses_mapped_switch_dp():
     adapter = local.TuyaLocalAdapter()
     reading = asyncio.run(adapter.set_power(ref(version=3.4), False))
     assert reading.is_on is False
+
+
+def test_light_state_command_sends_dps_and_keeps_requested_state():
+    from cordyhome.adapters.tuya.dps import DpColour, DpMap, DpRange
+
+    mapping = DpMap(
+        switch=20,
+        mode=21,
+        brightness=DpRange(22, 10, 1000),
+        colour=DpColour(24),
+        power=None,
+    )
+    device = ref(version=3.4, version_confirmed=True, dp_map=mapping.to_dict())
+    adapter = local.TuyaLocalAdapter()
+    assert adapter.capabilities(device.config) == ["power", "brightness", "color"]
+    reading = asyncio.run(adapter.set_state(device, {"brightness": 50}))
+    assert FakeTinyDevice.calls == [("set", {"20": True, "22": 505, "21": "white"})]
+    assert reading.is_on is True and reading.state["brightness"] == 50

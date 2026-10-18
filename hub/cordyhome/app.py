@@ -22,7 +22,7 @@ from .config import Config
 from .db import Database
 from .events import EventBus
 from .services.demo import seed_demo
-from .services.hub import DeviceNotFound, Hub
+from .services.hub import DeviceNotFound, Hub, UnsupportedCommand
 from .services.tuya_link import TuyaLinkService
 from .settings import SettingsStore
 
@@ -91,6 +91,10 @@ def create_app(
     @app.exception_handler(AdapterError)
     async def adapter_error(_: Request, exc: AdapterError):
         return JSONResponse({"detail": str(exc)}, status_code=502)
+
+    @app.exception_handler(UnsupportedCommand)
+    async def unsupported(_: Request, exc: UnsupportedCommand):
+        return JSONResponse({"detail": str(exc)}, status_code=400)
 
     @app.exception_handler(DeviceNotFound)
     async def not_found(_: Request, exc: DeviceNotFound):

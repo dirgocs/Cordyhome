@@ -38,6 +38,15 @@ class FakeAdapter:
     def forget(self, device_id: int) -> None:
         pass
 
+    def capabilities(self, config):
+        return config.get("capabilities", ["power"])
+
+    async def set_state(self, device: DeviceRef, changes) -> DeviceReading:
+        if device.id in self.fail:
+            raise AdapterError("Sem resposta na rede.")
+        self.on[device.id] = True
+        return DeviceReading(online=True, is_on=True, state=changes)
+
 
 @pytest.fixture
 def clock() -> FakeClock:

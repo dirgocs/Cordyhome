@@ -1,6 +1,6 @@
 import { api } from './api';
 import { errorMessage, home, toast } from './state.svelte';
-import type { Device } from './types';
+import type { Device, DeviceState } from './types';
 
 /** Dispositivos com comando em andamento (mostram o estado otimista com indicador). */
 export const pending = $state<Record<number, boolean>>({});
@@ -35,5 +35,16 @@ export async function setPower(device: Device, on: boolean) {
 		toast(errorMessage(error), 'error');
 	} finally {
 		delete pending[device.id];
+	}
+}
+
+/** Brilho, temperatura de cor ou cor. Mostra o novo estado na hora e confirma com o hub. */
+export async function setState(device: Device, changes: DeviceState) {
+	home.upsert({ ...device, is_on: true, state: { ...device.state, ...changes } });
+	try {
+		home.upsert(await api.post<Device>(`/devices/${device.id}/state`, changes));
+	} catch (error) {
+		home.upsert(device);
+		toast(errorMessage(error), 'error');
 	}
 }

@@ -9,7 +9,14 @@ import logging
 import sqlite3
 from typing import Any
 
-from ..adapters.base import Adapter, AdapterError, DeviceReading, DeviceRef
+from ..adapters.base import (
+    STATE_KEYS,
+    Adapter,
+    AdapterError,
+    DeviceReading,
+    DeviceRef,
+    adapter_capabilities,
+)
 from ..clock import Clock
 from ..db import Database
 from ..events import EventBus
@@ -28,7 +35,11 @@ class DeviceNotFound(Exception):
     pass
 
 
-def device_out(row: sqlite3.Row) -> dict[str, Any]:
+class UnsupportedCommand(Exception):
+    """O aparelho não tem a capacidade pedida (ex.: brilho numa tomada)."""
+
+
+def device_out(row: sqlite3.Row, capabilities: list[str]) -> dict[str, Any]:
     """Representação pública do dispositivo (nunca expõe a chave local)."""
     cfg = json.loads(row["config"] or "{}")
     power = row["power_w"] if row["online"] else None
@@ -54,6 +65,8 @@ def device_out(row: sqlite3.Row) -> dict[str, Any]:
         "nominal_watts": row["nominal_watts"],
         "power_alert_watts": row["power_alert_watts"],
         "confirm_off": bool(row["confirm_off"]),
+        "capabilities": capabilities,
+        "state": json.loads(row["state"] or "{}"),
         "info": {
             "ip": cfg.get("ip"),
             "protocol_version": cfg.get("version"),
@@ -109,11 +122,18 @@ class Hub:
         return row
 
     def device(self, device_id: int) -> dict[str, Any]:
-        return device_out(self.row(device_id))
+        return self._out(self.row(device_id))
 
     def devices(self) -> list[dict[str, Any]]:
         rows = self.db.all("SELECT * FROM devices ORDER BY sort_order, name COLLATE NOCASE")
-        return [device_out(r) for r in rows]
+        return [self._out(r) for r in rows]
+
+    def capabilities(self, row: sqlite3.Row) -> list[str]:
+        config = json.loads(row["config"] or "{}")
+        return adapter_capabilities(self.adapters.get(row["adapter"]), config)
+
+    def _out(self, row: sqlite3.Row) -> dict[str, Any]:
+        return device_out(row, self.capabilities(row))
 
     @staticmethod
     def ref(row: sqlite3.Row) -> DeviceRef:
@@ -185,6 +205,10 @@ class Hub:
             changes.update(online=1, last_seen=int(now), last_error=None, fail_count=0)
             if reading.is_on is not None:
                 changes["is_on"] = int(reading.is_on)
+            if reading.state:
+                state = json.loads(row["state"] or "{}")
+                state.update({k: v for k, v in reading.state.items() if k in STATE_KEYS})
+                changes["state"] = json.dumps(state, sort_keys=True)
             for key in ("power_w", "voltage_v", "current_a"):
                 value = getattr(reading, key)
                 if value is not None:
@@ -228,7 +252,7 @@ class Hub:
         )
         updated = self.db.one("SELECT * FROM devices WHERE id = ?", (device_id,))
         if updated is not None and _visible_change(row, updated):
-            self.bus.publish("device", device=device_out(updated))
+            self.bus.publish("device", device=self._out(updated))
 
     def _effective_power(self, row: sqlite3.Row, reading: DeviceReading) -> float | None:
         if reading.power_w is not None:
@@ -304,6 +328,31 @@ class Hub:
         self._apply_reading(self.row(device_id), reading, None, now, from_command=True)
         self.log_event(device_id, source, "on" if on else "off", None, now)
         self._schedule_refresh(device_id)
+        return self.device(device_id)
+
+    async def set_state(
+        self, device_id: int, changes: dict[str, Any], source: str = "user"
+    ) -> dict[str, Any]:
+        """Brilho, temperatura de cor ou cor. `changes` já vem validado pela API."""
+        row = self.row(device_id)
+        unsupported = set(changes) - set(self.capabilities(row))
+        if unsupported:
+            raise UnsupportedCommand(
+                f"{row['name']} não tem controle de {', '.join(sorted(unsupported))}."
+            )
+        adapter = self.adapters.get(row["adapter"])
+        now = self.clock.now()
+        try:
+            if adapter is None or not hasattr(adapter, "set_state"):
+                raise AdapterError(f"Adaptador '{row['adapter']}' não aceita esse comando.")
+            reading = await adapter.set_state(self.ref(row), changes)
+        except AdapterError as exc:
+            self.log_event(device_id, source, "failed", f"ajustar: {exc}", now)
+            raise
+        if reading is None:
+            reading = DeviceReading(online=True, state=changes)
+        self._apply_reading(self.row(device_id), reading, None, now, from_command=True)
+        self.log_event(device_id, source, "state", _describe_state(changes), now)
         return self.device(device_id)
 
     async def toggle(self, device_id: int, source: str = "user") -> dict[str, Any]:
@@ -437,5 +486,16 @@ class Hub:
 
 
 def _visible_change(before: sqlite3.Row, after: sqlite3.Row) -> bool:
-    keys = ("online", "is_on", "power_w", "last_error")
+    keys = ("online", "is_on", "power_w", "last_error", "state")
     return any(before[k] != after[k] for k in keys)
+
+
+def _describe_state(changes: dict[str, Any]) -> str:
+    parts = []
+    if "brightness" in changes:
+        parts.append(f"brilho {changes['brightness']}%")
+    if "color_temp" in changes:
+        parts.append(f"temperatura de cor {changes['color_temp']}%")
+    if "color" in changes:
+        parts.append("cor")
+    return ", ".join(parts)

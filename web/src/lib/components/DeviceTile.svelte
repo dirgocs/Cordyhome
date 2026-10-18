@@ -30,6 +30,7 @@
 		{:else if device.is_on}
 			<span class="num">{watts(device.power_w)}</span>
 			{#if device.power_estimated}<span class="faint">estimado</span>{/if}
+			{#if device.state?.brightness != null}<span class="faint num">· {device.state.brightness}%</span>{/if}
 		{:else}
 			Desligado
 		{/if}

@@ -51,6 +51,8 @@ def seed_demo(db: Database, tz: str = "America/Sao_Paulo", days: int = 60) -> No
                 "standby_watts": 0.5 if watts > 50 else 0.2,
                 "initially_on": hour_now in hours or name == "Geladeira",
             }
+            if kind == "light":
+                config["capabilities"] = ["power", "energy", "brightness", "color_temp", "color"]
             cur = db.execute(
                 "INSERT INTO devices (name, room_id, kind, adapter, external_id, config, "
                 "sort_order, created_at, power_alert_watts, confirm_off) "

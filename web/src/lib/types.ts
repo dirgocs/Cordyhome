@@ -1,4 +1,20 @@
-export type DeviceKind = 'plug' | 'light' | 'switch' | 'other';
+export type DeviceKind = 'plug' | 'light' | 'switch' | 'relay' | 'climate' | 'other';
+
+/** O que o aparelho sabe fazer; a interface monta os controles a partir disso. */
+export type Capability = 'power' | 'energy' | 'brightness' | 'color_temp' | 'color';
+
+export interface Hsv {
+	h: number;
+	s: number;
+	v: number;
+}
+
+export interface DeviceState {
+	brightness?: number;
+	color_temp?: number;
+	color?: Hsv;
+	mode?: string;
+}
 
 export interface Device {
 	id: number;
@@ -19,6 +35,8 @@ export interface Device {
 	nominal_watts: number | null;
 	power_alert_watts: number | null;
 	confirm_off: boolean;
+	capabilities: Capability[];
+	state: DeviceState;
 	info: {
 		ip: string | null;
 		protocol_version: number | null;

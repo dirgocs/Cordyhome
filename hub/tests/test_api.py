@@ -161,3 +161,26 @@ def test_room_off_skips_protected_devices(authed, svc, adapter):
     r = authed.post(f"/api/rooms/{room['id']}/power", json={"on": False})
     assert r.json()["changed"] == 1
     assert adapter.on[kettle] is False and fridge not in adapter.on
+
+
+def test_state_command_for_lights(authed, svc, adapter):
+    lamp = add_device(svc, "Abajur", config='{"capabilities": ["power", "brightness", "color"]}')
+    plug = add_device(svc, "Tomada")
+
+    r = authed.post(f"/api/devices/{lamp}/state", json={"brightness": 40})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["capabilities"] == ["power", "brightness", "color"]
+    assert body["state"] == {"brightness": 40} and body["is_on"] is True
+
+    r = authed.post(f"/api/devices/{lamp}/state", json={"color": {"h": 200, "s": 90, "v": 70}})
+    assert r.json()["state"] == {"brightness": 40, "color": {"h": 200, "s": 90, "v": 70}}
+    events = authed.get(f"/api/devices/{lamp}").json()["events"]
+    assert [e["detail"] for e in events[:2]] == ["cor", "brilho 40%"]
+
+    # Sem a capacidade, ou fora da faixa, o comando é recusado.
+    assert authed.post(f"/api/devices/{lamp}/state", json={"color_temp": 50}).status_code == 400
+    assert authed.post(f"/api/devices/{plug}/state", json={"brightness": 40}).status_code == 400
+    assert authed.post(f"/api/devices/{lamp}/state", json={"brightness": 0}).status_code == 422
+    assert authed.post(f"/api/devices/{lamp}/state", json={}).status_code == 400
+    assert authed.get(f"/api/devices/{plug}").json()["capabilities"] == ["power"]

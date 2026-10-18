@@ -3,6 +3,13 @@
 O Cordyhome segue [versionamento semântico](https://semver.org/lang/pt-BR/): enquanto a versão
 começar com 0, mudanças de recurso sobem o número do meio e correções sobem o último.
 
+## 0.5.0
+
+- Aparelhos passam a ter **capacidades** (liga/desliga, mede energia, brilho, tom do branco, cor),
+  e a tela de cada aparelho mostra os controles que ele tem, de qualquer marca.
+- Lâmpadas Tuya / Smart Life: brilho, tom do branco e cor pela rede local.
+- Novos tipos de aparelho: relé e ar-condicionado.
+
 ## 0.4.0
 
 - Nova tela **Adicionar aparelhos**, aberta pelo início e por Ajustes: você escolhe de onde vêm
