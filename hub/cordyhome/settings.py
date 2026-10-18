@@ -3,9 +3,21 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
+from .adapters.tuya.discovery import MAX_NETWORKS, normalize_network
 from .db import Database
+
+
+def normalize_networks(values: list[str]) -> list[str]:
+    """Faixas de IP onde procurar as tomadas, validadas e sem repetição."""
+    out: list[str] = []
+    for value in values:
+        if value.strip() and (network := normalize_network(value)) not in out:
+            out.append(network)
+    if len(out) > MAX_NETWORKS:
+        raise ValueError(f"Informe no máximo {MAX_NETWORKS} faixas de rede.")
+    return out
 
 
 class Settings(BaseModel):
@@ -13,6 +25,13 @@ class Settings(BaseModel):
     timezone: str = "America/Sao_Paulo"
     poll_interval_sec: int = Field(10, ge=3, le=300)
     offline_after_failures: int = Field(3, ge=1, le=20)
+    # Redes (VLANs) das tomadas que o broadcast não alcança, ex.: ["192.168.20.0/24"].
+    lan_networks: list[str] = Field(default_factory=list)
+
+    @field_validator("lan_networks")
+    @classmethod
+    def valid_networks(cls, value: list[str]) -> list[str]:
+        return normalize_networks(value)
 
 
 class SettingsStore:

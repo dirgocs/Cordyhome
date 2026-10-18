@@ -64,8 +64,8 @@ class TuyaLinkService:
             link["token"] = refreshed
             self.settings.set_json(LINK_KEY, link)
         self._candidates = {d.id: d for d in devices}
-        lan = await scan_lan(scantime=8, want_ids=list(self._candidates))
-        self._lan.update({d.id: d for d in lan})
+        keys = {d.id: d.local_key for d in devices if d.local_key}
+        await self._scan(list(self._candidates), keys)
 
         existing = {
             row["external_id"]: row["id"]
@@ -98,8 +98,10 @@ class TuyaLinkService:
         )
         if not rows:
             return 0
-        lan = await scan_lan(scantime=8, want_ids=[r["external_id"] for r in rows])
-        self._lan.update({d.id: d for d in lan})
+        keys = {
+            r["external_id"]: key for r in rows if (key := json.loads(r["config"]).get("local_key"))
+        }
+        await self._scan([r["external_id"] for r in rows], keys)
         changed = 0
         for row in rows:
             found = self._lan.get(row["external_id"])
@@ -115,6 +117,13 @@ class TuyaLinkService:
                 self.hub.forget(row["id"], row["adapter"])
                 changed += 1
         return changed
+
+    async def _scan(self, want_ids: list[str], keys: dict[str, str]) -> list[LanDevice]:
+        """Broadcast na rede do hub e, se configuradas, varredura das faixas das tomadas."""
+        networks = self.settings.get().lan_networks
+        lan = await scan_lan(scantime=8, want_ids=want_ids, networks=networks, keys=keys)
+        self._lan.update({d.id: d for d in lan})
+        return lan
 
     # ------------------------------------------------------------------ importação
 

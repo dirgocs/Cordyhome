@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from ..services.energy import RANGES, energy_report, power_history, total_power_history
 from ..services.scheduler import ALL_DAYS, TIME_RE, next_run
+from ..settings import normalize_networks
 from .deps import Services, current_user, services, websocket_user
 
 router = APIRouter(prefix="/api", dependencies=[Depends(current_user)])
@@ -457,6 +458,12 @@ class SettingsPatch(BaseModel):
     timezone: str | None = None
     poll_interval_sec: int | None = Field(None, ge=3, le=300)
     offline_after_failures: int | None = Field(None, ge=1, le=20)
+    lan_networks: list[str] | None = Field(None, max_length=20)
+
+    @field_validator("lan_networks")
+    @classmethod
+    def valid_networks(cls, value: list[str] | None) -> list[str] | None:
+        return None if value is None else normalize_networks(value)
 
     @field_validator("timezone")
     @classmethod

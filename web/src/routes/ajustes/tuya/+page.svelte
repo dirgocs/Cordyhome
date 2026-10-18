@@ -242,7 +242,8 @@
 			{#if missingIp > 0}
 				<p class="hint muted">
 					{missingIp} {missingIp === 1 ? 'tomada não respondeu' : 'tomadas não responderam'} na rede agora. Elas serão importadas e o
-					Cordyhome continua procurando; confira se estão energizadas e no mesmo Wi-Fi do hub.
+					Cordyhome continua procurando; confira se estão energizadas. Se elas ficam em outra rede
+					(uma rede só para IoT, por exemplo), informe a faixa em Ajustes, no campo Rede das tomadas.
 				</p>
 			{/if}
 		</section>
@@ -389,16 +390,19 @@
 		gap: 12px;
 	}
 	.qr {
-		width: 232px;
-		height: 232px;
+		width: 260px;
+		height: 260px;
+		max-width: 100%;
 		padding: 10px;
 		border-radius: 16px;
 		background: #fff;
 		border: 1px solid var(--border);
 	}
 	.qr :global(svg) {
+		display: block;
 		width: 100%;
 		height: 100%;
+		shape-rendering: crispEdges;
 	}
 	.expired .qr {
 		opacity: 0.12;

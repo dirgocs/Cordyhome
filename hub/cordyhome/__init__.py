@@ -1,3 +1,3 @@
 """Hub local e gratuito para gestão de dispositivos IoT Wi-Fi."""
 
-__version__ = "0.2.2"
+__version__ = "0.3.0"

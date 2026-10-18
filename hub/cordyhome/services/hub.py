@@ -274,7 +274,9 @@ class Hub:
         )
         if offline:
             self._last_rescan = now
-            await self.lan_rescan()
+            # Em segundo plano: a varredura de outras redes leva alguns segundos e as
+            # leituras das tomadas que estão online não podem esperar por ela.
+            self._background(self.lan_rescan())
 
     # ------------------------------------------------------------------ comandos
 
@@ -344,9 +346,23 @@ class Hub:
             with contextlib.suppress(DeviceNotFound):
                 await self.refresh(device_id)
 
+        self._background(run())
+
+    def _background(self, coro) -> None:
+        """Roda uma tarefa sem bloquear o ciclo; erros vão para o log."""
+
+        async def guarded() -> None:
+            try:
+                await coro
+            except asyncio.CancelledError:
+                raise
+            except Exception:  # noqa: BLE001
+                log.exception("Falha em tarefa de segundo plano")
+
         try:
-            task = asyncio.get_running_loop().create_task(run())
+            task = asyncio.get_running_loop().create_task(guarded())
         except RuntimeError:
+            coro.close()
             return
         self._refresh_tasks.add(task)
         task.add_done_callback(self._refresh_tasks.discard)

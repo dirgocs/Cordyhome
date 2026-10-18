@@ -3,6 +3,14 @@
 O Cordyhome segue [versionamento semântico](https://semver.org/lang/pt-BR/): enquanto a versão
 começar com 0, mudanças de recurso sobem o número do meio e correções sobem o último.
 
+## 0.3.0
+
+- Tomadas numa rede separada (VLAN de IoT): novo campo **Ajustes → Tomadas Tuya → Rede das
+  tomadas**. O Cordyhome procura as tomadas nessa faixa de IP pela porta TCP 6668, onde o
+  broadcast não chega, na importação e na busca automática.
+- A busca automática por tomadas offline roda em segundo plano, sem atrasar as leituras.
+- Corrige o QR code da autorização Tuya, que saía cortado e não era lido pelo app.
+
 ## 0.2.2
 
 - Corrige o app de desktop que fechava ao abrir em alguns Windows ("O identificador da janela é

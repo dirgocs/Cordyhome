@@ -17,6 +17,7 @@
 	let timezones = $state<string[]>([]);
 	let theme = $state<Theme>(getTheme());
 	let tariff = $state('');
+	let networks = $state('');
 	let scanning = $state(false);
 	let unlinkOpen = $state(false);
 
@@ -24,6 +25,7 @@
 		try {
 			[settings, tuya] = await Promise.all([api.get<Settings>('/settings'), api.get<TuyaStatus>('/tuya')]);
 			tariff = settings.tariff_per_kwh.toFixed(2).replace('.', ',');
+			networks = settings.lan_networks.join(', ');
 		} catch (e) {
 			toast(errorMessage(e), 'error');
 		}
@@ -39,13 +41,24 @@
 		latestRelease().then((v) => (latest = v ?? ''));
 	});
 
-	async function saveSettings(patch: Partial<Settings>) {
+	async function saveSettings(patch: Partial<Settings>): Promise<boolean> {
 		try {
 			settings = await api.patch<Settings>('/settings', patch);
 			toast('Configuração salva');
+			return true;
 		} catch (e) {
 			toast(errorMessage(e), 'error');
+			return false;
 		}
+	}
+
+	async function saveNetworks(event: SubmitEvent) {
+		event.preventDefault();
+		const list = networks.split(/[\s,;]+/).filter(Boolean);
+		if (!(await saveSettings({ lan_networks: list })) || !settings) return;
+		networks = settings.lan_networks.join(', ');
+		// Procura já nas faixas novas, em vez de esperar a busca automática.
+		if (list.length && tuya?.imported_devices) rescan();
 	}
 
 	function saveTariff(event: SubmitEvent) {
@@ -172,6 +185,20 @@
 				<button class="btn ghost danger" type="button" onclick={() => (unlinkOpen = true)}>Desvincular</button>
 			{/if}
 		</div>
+		{#if settings}
+			<form class="networks" onsubmit={saveNetworks}>
+				<label class="field">
+					<span>Rede das tomadas (opcional)</span>
+					<input class="input mono" bind:value={networks} placeholder="192.168.20.0/24" autocomplete="off" spellcheck="false" />
+				</label>
+				<button class="btn" type="submit">Salvar</button>
+			</form>
+			<p class="muted small">
+				Preencha se as tomadas ficam numa rede separada da do computador, como uma rede só para IoT.
+				O Cordyhome passa a procurá-las nessa faixa (separe várias com vírgula). O roteador precisa
+				permitir que este computador acesse essa rede na porta TCP 6668.
+			</p>
+		{/if}
 	</section>
 
 	<section class="card section">
@@ -369,12 +396,14 @@
 		height: 36px;
 	}
 	.add-room,
+	.networks,
 	.tariff {
 		display: flex;
 		gap: 8px;
 		align-items: flex-end;
 	}
-	.add-room .input {
+	.add-room .input,
+	.networks .field {
 		flex: 1;
 	}
 	.prefix {

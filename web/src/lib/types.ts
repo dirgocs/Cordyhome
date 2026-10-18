@@ -115,6 +115,7 @@ export interface Settings {
 	timezone: string;
 	poll_interval_sec: number;
 	offline_after_failures: number;
+	lan_networks: string[];
 }
 
 export interface TuyaStatus {

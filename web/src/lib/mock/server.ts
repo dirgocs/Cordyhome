@@ -99,7 +99,8 @@ const state = {
 		tariff_per_kwh: 0.85,
 		timezone: 'America/Sao_Paulo',
 		poll_interval_sec: 10,
-		offline_after_failures: 3
+		offline_after_failures: 3,
+		lan_networks: []
 	} as Settings,
 	tuya: { linked: true, username: 'diego@exemplo.com', linked_at: now() - 86400 * 20 },
 	pendingLogin: null as { token: string; started: number } | null,
