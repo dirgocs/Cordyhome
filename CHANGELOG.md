@@ -3,6 +3,14 @@
 O Cordyhome segue [versionamento semântico](https://semver.org/lang/pt-BR/): enquanto a versão
 começar com 0, mudanças de recurso sobem o número do meio e correções sobem o último.
 
+## 0.2.2
+
+- Corrige o app de desktop que fechava ao abrir em alguns Windows ("O identificador da janela é
+  inválido", WebView2 0x80070578). A janela agora é criada já visível e só quando necessária.
+- Se a janela não puder ser criada, o Cordyhome abre no navegador padrão e segue na bandeja.
+- Novo item **Abrir no navegador** no menu do ícone da bandeja.
+- Iniciado com o Windows, o app fica só na bandeja, sem criar a janela até ser aberto.
+
 ## 0.2.1
 
 - App de desktop: registro de diagnóstico em `%LOCALAPPDATA%\com.cordyhome.app\logs\app.log`

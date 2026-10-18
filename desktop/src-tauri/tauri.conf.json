@@ -7,25 +7,16 @@
     "frontendDist": "../ui"
   },
   "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "Cordyhome",
-        "width": 1200,
-        "height": 800,
-        "minWidth": 380,
-        "minHeight": 560,
-        "center": true,
-        "visible": false
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "publisher": "Cordyhome",
     "shortDescription": "Hub local e gratuito para os aparelhos Wi-Fi da casa",
     "icon": [
@@ -46,7 +37,9 @@
       },
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["PortugueseBR"],
+        "languages": [
+          "PortugueseBR"
+        ],
         "displayLanguageSelector": false
       }
     }
