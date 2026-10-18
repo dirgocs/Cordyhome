@@ -9,6 +9,7 @@ use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -16,6 +17,23 @@ use command_group::{CommandGroup, GroupChild};
 use tauri::{AppHandle, Manager, Url};
 
 pub const PORT: u16 = 8420;
+
+/// O hub respondeu e a interface pode ser aberta.
+static READY: AtomicBool = AtomicBool::new(false);
+/// A janela não pôde ser criada: a interface abre no navegador padrão.
+static USE_BROWSER: AtomicBool = AtomicBool::new(false);
+
+pub fn is_ready() -> bool {
+    READY.load(Ordering::SeqCst)
+}
+
+pub fn use_browser() {
+    USE_BROWSER.store(true, Ordering::SeqCst);
+}
+
+pub fn url() -> Url {
+    Url::parse(&format!("http://localhost:{PORT}/")).expect("URL válida")
+}
 
 #[derive(Default)]
 pub struct HubProcess(Mutex<Option<GroupChild>>);
@@ -209,9 +227,11 @@ fn healthy() -> bool {
 
 fn open_hub(app: &AppHandle) {
     crate::diag::log("Hub respondendo; abrindo a interface");
+    READY.store(true, Ordering::SeqCst);
     if let Some(window) = app.get_webview_window("main") {
-        let url = Url::parse(&format!("http://localhost:{PORT}/")).expect("URL válida");
-        let _ = window.navigate(url);
+        let _ = window.navigate(url());
+    } else if USE_BROWSER.load(Ordering::SeqCst) {
+        crate::open_in_browser(app);
     }
 }
 
