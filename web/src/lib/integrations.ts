@@ -13,6 +13,8 @@ export interface Integration {
 	href: string;
 	/** Endpoint de status (`{ linked, imported_devices, ... }`). */
 	statusPath: string;
+	/** Como chamar o estado "ligado" desta integração na lista. */
+	linkedLabel: string;
 }
 
 export const INTEGRATIONS: Integration[] = [
@@ -22,6 +24,16 @@ export const INTEGRATIONS: Integration[] = [
 		brands: 'Aparelhos controlados pelos apps Tuya Smart ou Smart Life, de várias marcas.',
 		kinds: 'Tomadas, interruptores e outros aparelhos com controle local',
 		href: '/adicionar/tuya',
-		statusPath: '/tuya'
+		statusPath: '/tuya',
+		linkedLabel: 'Conta vinculada'
+	},
+	{
+		id: 'mqtt',
+		name: 'MQTT',
+		brands: 'SONOFF OpenEdge, Tasmota, ESPHome, Shelly, Zigbee2MQTT e outros que usam a descoberta do Home Assistant.',
+		kinds: 'Relés, tomadas, interruptores, lâmpadas e medidores de energia',
+		href: '/adicionar/mqtt',
+		statusPath: '/mqtt',
+		linkedLabel: 'Ativado'
 	}
 ];

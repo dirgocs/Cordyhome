@@ -168,14 +168,16 @@
 				{#if device.confirm_off}· <span class="protected"><ShieldCheck size={14} /> Protegido</span>{/if}
 			</p>
 		</div>
-		<Switch
-			size="lg"
-			checked={device.is_on === true}
-			label="{device.is_on ? 'Desligar' : 'Ligar'} {device.name}"
-			disabled={!device.online}
-			busy={!!pending[device.id]}
-			onchange={(v) => setPower(device, v)}
-		/>
+		{#if device.capabilities.includes('power')}
+			<Switch
+				size="lg"
+				checked={device.is_on === true}
+				label="{device.is_on ? 'Desligar' : 'Ligar'} {device.name}"
+				disabled={!device.online}
+				busy={!!pending[device.id]}
+				onchange={(v) => setPower(device, v)}
+			/>
+		{/if}
 	</header>
 
 	{#if !device.online}

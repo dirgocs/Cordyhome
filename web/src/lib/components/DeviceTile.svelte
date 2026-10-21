@@ -10,24 +10,28 @@
 	let { device }: { device: Device } = $props();
 	const on = $derived(device.online && device.is_on === true);
 	const busy = $derived(!!pending[device.id]);
+	// Medidores sem relé só mostram o consumo.
+	const switchable = $derived(device.capabilities.includes('power'));
 </script>
 
 <a class="tile" class:on class:offline={!device.online} href={to(`/dispositivos/${device.id}`)}>
 	<div class="top">
 		<span class="icon"><KindIcon kind={device.kind} /></span>
-		<Switch
-			checked={device.is_on === true}
-			label="{device.is_on ? 'Desligar' : 'Ligar'} {device.name}"
-			disabled={!device.online}
-			{busy}
-			onchange={(value) => setPower(device, value)}
-		/>
+		{#if switchable}
+			<Switch
+				checked={device.is_on === true}
+				label="{device.is_on ? 'Desligar' : 'Ligar'} {device.name}"
+				disabled={!device.online}
+				{busy}
+				onchange={(value) => setPower(device, value)}
+			/>
+		{/if}
 	</div>
 	<div class="name">{device.name}</div>
 	<div class="status">
 		{#if !device.online}
 			<WifiOff size={14} aria-hidden="true" /> Sem conexão
-		{:else if device.is_on}
+		{:else if device.is_on || !switchable}
 			<span class="num">{watts(device.power_w)}</span>
 			{#if device.power_estimated}<span class="faint">estimado</span>{/if}
 			{#if device.state?.brightness != null}<span class="faint num">· {device.state.brightness}%</span>{/if}

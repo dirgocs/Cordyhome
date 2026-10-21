@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import __version__
 from .adapters.base import Adapter, AdapterError
+from .adapters.mqtt.adapter import MqttAdapter
 from .adapters.simulator import SimulatorAdapter
 from .adapters.tuya.cloud import TuyaCloud
 from .adapters.tuya.local import TuyaLocalAdapter
@@ -23,6 +24,7 @@ from .db import Database
 from .events import EventBus
 from .services.demo import seed_demo
 from .services.hub import DeviceNotFound, Hub, UnsupportedCommand
+from .services.mqtt_link import MqttLinkService
 from .services.tuya_link import TuyaLinkService
 from .settings import SettingsStore
 
@@ -50,10 +52,19 @@ def build_services(
     )
     tuya = TuyaLinkService(db, settings, hub, tuya_cloud or TuyaCloud())
     hub.lan_rescan = tuya.rescan
+    mqtt = MqttLinkService(db, settings, hub)
+    hub.adapters.setdefault("mqtt", MqttAdapter(mqtt))
     if config.demo:
         seed_demo(db, settings.get().timezone)
     return Services(
-        config=config, db=db, settings=settings, bus=bus, auth=AuthService(db), hub=hub, tuya=tuya
+        config=config,
+        db=db,
+        settings=settings,
+        bus=bus,
+        auth=AuthService(db),
+        hub=hub,
+        tuya=tuya,
+        mqtt=mqtt,
     )
 
 
@@ -67,8 +78,10 @@ def create_app(
     async def lifespan(app: FastAPI):
         if background:
             await svc.hub.start()
+            await svc.mqtt.start()
         yield
         if background:
+            await svc.mqtt.stop()
             await svc.hub.stop()
         else:
             svc.hub.meter.flush()

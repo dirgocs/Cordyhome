@@ -9,6 +9,7 @@ from ..config import Config
 from ..db import Database
 from ..events import EventBus
 from ..services.hub import Hub
+from ..services.mqtt_link import MqttLinkService
 from ..services.tuya_link import TuyaLinkService
 from ..settings import SettingsStore
 
@@ -22,6 +23,7 @@ class Services:
     auth: AuthService
     hub: Hub
     tuya: TuyaLinkService
+    mqtt: MqttLinkService
 
 
 def services(request: Request) -> Services:
