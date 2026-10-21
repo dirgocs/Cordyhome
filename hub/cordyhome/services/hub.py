@@ -10,6 +10,8 @@ import sqlite3
 from typing import Any
 
 from ..adapters.base import (
+    ENERGY,
+    POWER,
     STATE_KEYS,
     Adapter,
     AdapterError,
@@ -71,8 +73,7 @@ def device_out(row: sqlite3.Row, capabilities: list[str]) -> dict[str, Any]:
             "ip": cfg.get("ip"),
             "protocol_version": cfg.get("version"),
             "product_name": cfg.get("product_name"),
-            "has_energy_meter": bool((cfg.get("dp_map") or {}).get("power"))
-            or row["adapter"] == "simulator",
+            "has_energy_meter": ENERGY in capabilities or row["adapter"] == "simulator",
         },
     }
 
@@ -327,7 +328,7 @@ class Hub:
             reading = DeviceReading(online=True, is_on=on)
         self._apply_reading(self.row(device_id), reading, None, now, from_command=True)
         self.log_event(device_id, source, "on" if on else "off", None, now)
-        self._schedule_refresh(device_id)
+        self.refresh_soon(device_id)
         return self.device(device_id)
 
     async def set_state(
@@ -363,9 +364,11 @@ class Hub:
         # Aparelhos protegidos (ex.: geladeira) nunca são desligados em lote.
         protected = "" if on else " AND confirm_off = 0"
         rows = self.db.all(
-            "SELECT id FROM devices WHERE room_id = ? AND enabled = 1 AND online = 1" + protected,
+            "SELECT * FROM devices WHERE room_id = ? AND enabled = 1 AND online = 1" + protected,
             (room_id,),
         )
+        # Medidores sem relé não ligam nem desligam.
+        rows = [r for r in rows if POWER in self.capabilities(r)]
         results = await asyncio.gather(
             *(self.set_power(r["id"], on, "room") for r in rows), return_exceptions=True
         )
@@ -387,8 +390,8 @@ class Hub:
         self._apply_reading(self.row(device_id), reading, error, self.clock.now())
         return self.device(device_id)
 
-    def _schedule_refresh(self, device_id: int, delay: float = 2.0) -> None:
-        """Depois de um comando, lê de novo para atualizar a potência real."""
+    def refresh_soon(self, device_id: int, delay: float = 2.0) -> None:
+        """Lê o aparelho de novo em segundo plano (depois de um comando, por exemplo)."""
 
         async def run() -> None:
             await asyncio.sleep(delay)

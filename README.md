@@ -13,16 +13,18 @@ energia, sem depender de nuvem, assinatura ou compras dentro do app.
 - **Tomadas Tuya / Smart Life** (Steck e outras marcas): importação pela conta do app, com QR code
   e sem conta de desenvolvedor. Depois disso, o controle e a leitura de energia são 100% pela rede
   local.
+- **Aparelhos MQTT** (SONOFF OpenEdge, Tasmota, ESPHome, Shelly, Zigbee2MQTT): o Cordyhome tem um
+  servidor MQTT embutido e reconhece os aparelhos pela descoberta do Home Assistant.
 - Interface web instalável (PWA) no celular e no computador, com tema claro e escuro.
 
-> Estado atual: **Fase 1** do [plano de arquitetura](docs/ARQUITETURA.md). Por enquanto só há
-> suporte a Tuya; Shelly, Tasmota, ESPHome, MQTT e Matter estão nas próximas fases.
+> Estado atual: **Fase 1** do [plano de arquitetura](docs/ARQUITETURA.md). Integrações: Tuya e
+> MQTT. A API direta do SONOFF OpenEdge, o modo LAN do eWeLink e Matter estão nas próximas fases.
 
 ## Como funciona
 
 ```
 Celular / PC  ──►  Cordyhome (hub, na sua rede)  ──►  tomadas Tuya (protocolo local)
-                   interface + API + SQLite
+                   interface + API + SQLite     ◄──►  aparelhos MQTT (servidor embutido)
 ```
 
 O hub precisa ficar ligado 24h (PC, Raspberry Pi, mini PC ou NAS) para gravar o consumo e
@@ -126,6 +128,29 @@ outra:
 O Cordyhome testa a porta 6668 em cada endereço da faixa e reconhece cada tomada pela chave local
 que veio da conta. Vale reservar IPs fixos para as tomadas no DHCP do roteador.
 
+## Conectando aparelhos MQTT (SONOFF OpenEdge, Tasmota, ESPHome…)
+
+Aparelhos que falam MQTT e usam a descoberta do Home Assistant entram sem nuvem e sem conta. É o
+caminho local dos SONOFF com **OpenEdge** (hoje o MINI ONE PM, MINI-1GSP, e o MINI PM, MINI-1GP)
+e de qualquer aparelho com Tasmota, ESPHome ou Shelly.
+
+1. Em **Adicionar aparelhos → MQTT**, escolha **Usar o servidor do Cordyhome** e toque em
+   **Ativar MQTT**. A tela mostra o endereço deste computador, a porta (1883), o usuário e a
+   senha.
+2. Abra o painel do aparelho no navegador (o IP dele, ou um nome como `MINI-1GSP.local`), entre
+   em **MQTT**, ative, preencha esses dados, deixe a descoberta do Home Assistant ligada com o
+   prefixo `homeassistant` e salve.
+3. O aparelho aparece sozinho em **Aparelhos encontrados**. Marque e toque em **Adicionar**.
+
+O estado chega na hora, pelo próprio aparelho: relé, potência, tensão e corrente. Um aparelho que
+só mede (como o MINI PM) aparece sem o botão de liga/desliga. Se você já tem um servidor MQTT
+(Mosquitto, o do Home Assistant), escolha **Já tenho um servidor** e informe endereço, usuário e
+senha.
+
+Se o aparelho fica numa rede separada (VLAN de IoT), essa rede precisa alcançar o computador do
+Cordyhome na **porta TCP 1883**. No Windows, o Python precisa estar liberado no firewall em redes
+privadas.
+
 ## Acesso de fora de casa
 
 **Não abra portas no roteador.** Use o [Tailscale](https://tailscale.com/), gratuito para uso
@@ -174,8 +199,9 @@ cd web && npm run check && npm run build
 
 ```
 hub/                       Python 3.11+ · FastAPI · SQLite
-  cordyhome/adapters/      Contrato de adaptadores + Tuya (tinytuya, SDK de compartilhamento) + simulador
-  cordyhome/services/      Estado e comandos (hub.py), energia, rotinas, alertas, vínculo Tuya
+  cordyhome/adapters/      Contrato de adaptadores + Tuya (tinytuya, SDK de compartilhamento) + MQTT
+                           (amqtt, descoberta do Home Assistant) + simulador
+  cordyhome/services/      Estado e comandos (hub.py), energia, rotinas, alertas, vínculos Tuya e MQTT
   cordyhome/api/           REST + WebSocket de tempo real
 web/                       SvelteKit (Svelte 5), SPA estática servida pelo hub
 desktop/                   App de desktop (Tauri 2): janela, bandeja e o hub embutido

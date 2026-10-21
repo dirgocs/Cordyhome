@@ -5,9 +5,11 @@
  */
 import type {
 	Alert,
+	Capability,
 	Device,
 	DeviceKind,
 	EnergyReport,
+	MqttCandidate,
 	RangeKey,
 	Room,
 	Schedule,
@@ -104,6 +106,7 @@ const state = {
 	} as Settings,
 	tuya: { linked: true, username: 'diego@exemplo.com', linked_at: now() - 86400 * 20 },
 	pendingLogin: null as { token: string; started: number } | null,
+	mqtt: { enabled: false, mode: 'embedded' as 'embedded' | 'external', host: '', password: '', since: 0 },
 	nextId: 100
 };
 
@@ -516,6 +519,69 @@ function importDevices(items: { id: string; room?: string | null }[]): number[] 
 	return ids;
 }
 
+// Aparelhos MQTT de mentira: aparecem um a um depois de ativar, como se fossem se conectando.
+const MQTT_DEVICES: { id: string; name: string; kind: DeviceKind; product: string; caps: Capability[] }[] = [
+	{ id: '1gsp-a1b2c3-relay', name: 'MINI-1GSP', kind: 'relay', product: 'SONOFF MINI ONE PM', caps: ['power', 'energy'] },
+	{ id: 'meter:1gp-d4e5f6', name: 'MINI-1GP', kind: 'other', product: 'SONOFF MINI PM', caps: ['energy'] },
+	{ id: 'tasmota-abajur', name: 'Abajur', kind: 'light', product: 'Tasmota', caps: ['power', 'brightness'] }
+];
+
+function mqttStatus() {
+	const m = state.mqtt;
+	return {
+		linked: m.enabled,
+		enabled: m.enabled,
+		mode: m.mode,
+		connected: m.enabled,
+		error: null,
+		host: m.host,
+		port: 1883,
+		username: m.mode === 'embedded' ? 'cordyhome' : '',
+		password: m.mode === 'embedded' ? m.password : null,
+		addresses: m.mode === 'embedded' ? ['192.168.50.23'] : [],
+		discovery_prefix: 'homeassistant',
+		discovered_devices: mqttCandidates().length,
+		imported_devices: state.sims.filter((s) => s.device.adapter === 'mqtt').length
+	};
+}
+
+function mqttCandidates(): MqttCandidate[] {
+	if (!state.mqtt.enabled) return [];
+	const visible = Math.min(MQTT_DEVICES.length, Math.floor((now() - state.mqtt.since) / 4));
+	return MQTT_DEVICES.slice(0, visible).map((d) => ({
+		id: d.id,
+		name: d.name,
+		kind: d.kind,
+		product_name: d.product,
+		capabilities: d.caps,
+		has_energy_meter: d.caps.includes('energy'),
+		imported_device_id: state.sims.find((s) => s.device.info.ip === d.id)?.device.id ?? null
+	}));
+}
+
+function importMqtt(items: { id: string }[]): number[] {
+	const ids: number[] = [];
+	for (const item of items) {
+		const d = MQTT_DEVICES.find((x) => x.id === item.id);
+		if (!d) continue;
+		const existing = state.sims.find((s) => s.device.info.ip === d.id);
+		if (existing) {
+			ids.push(existing.device.id);
+			continue;
+		}
+		const profile: Profile = { name: d.name, room: '', kind: d.kind, watts: 25 + Math.round(random() * 60), hours: [] };
+		const id = state.nextId++;
+		const device = makeDevice(id, profile, null, true);
+		// No protótipo, o id MQTT fica guardado no campo de IP (que aparelhos MQTT não têm).
+		Object.assign(device, { adapter: 'mqtt', capabilities: d.caps });
+		device.info = { ...device.info, ip: d.id, product_name: d.product, has_energy_meter: d.caps.includes('energy') };
+		state.sims.push({ profile, device, hourly: new Map(), minutes: [], lastSample: now() });
+		ids.push(id);
+	}
+	emit('devices');
+	return ids;
+}
+
 // ------------------------------------------------------------------ roteador
 
 function publicDevices(): Device[] {
@@ -730,6 +796,30 @@ async function handle(method: string, path: string, body: any): Promise<unknown>
 			return { updated: 0 };
 		case 'DELETE /tuya':
 			state.tuya.linked = false;
+			return undefined;
+		case 'GET /mqtt':
+			return mqttStatus();
+		case 'PUT /mqtt': {
+			const b = body as { mode?: 'embedded' | 'external'; host?: string };
+			if (b.mode === 'external' && !String(b.host ?? '').trim()) throw new MockError(422, 'Informe o endereço do servidor MQTT.');
+			state.mqtt = {
+				enabled: true,
+				mode: b.mode ?? 'embedded',
+				host: b.mode === 'external' ? String(b.host).trim() : '',
+				password: state.mqtt.password || 'k7Qm2xVb9TzL4wPa',
+				since: now()
+			};
+			return mqttStatus();
+		}
+		case 'POST /mqtt/password':
+			state.mqtt.password = 'R3nVq8LmZ2xCt5Hy';
+			return mqttStatus();
+		case 'GET /mqtt/devices':
+			return mqttCandidates();
+		case 'POST /mqtt/import':
+			return { imported: importMqtt(body.devices) };
+		case 'DELETE /mqtt':
+			state.mqtt.enabled = false;
 			return undefined;
 	}
 	throw new MockError(404, 'Não encontrado.');

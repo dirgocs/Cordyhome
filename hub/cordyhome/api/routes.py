@@ -566,6 +566,64 @@ def tuya_unlink(svc: Services = Depends(services)):
     svc.tuya.unlink()
 
 
+# ============================================================================ MQTT
+
+
+class MqttConfigBody(BaseModel):
+    enabled: bool | None = None
+    mode: Literal["embedded", "external"] | None = None
+    host: str | None = Field(None, max_length=253)
+    port: int | None = Field(None, ge=1, le=65535)
+    username: str | None = Field(None, max_length=64)
+    password: str | None = Field(None, max_length=128)
+    discovery_prefix: str | None = Field(None, min_length=1, max_length=64)
+
+
+class MqttImportItem(BaseModel):
+    id: str
+    name: str | None = Field(None, max_length=60)
+
+
+class MqttImportBody(BaseModel):
+    devices: list[MqttImportItem]
+
+
+@router.get("/mqtt")
+def mqtt_status(svc: Services = Depends(services)):
+    return svc.mqtt.status()
+
+
+@router.put("/mqtt")
+async def mqtt_configure(body: MqttConfigBody, svc: Services = Depends(services)):
+    try:
+        return await svc.mqtt.configure(body.model_dump(exclude_none=True))
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.post("/mqtt/password")
+async def mqtt_new_password(svc: Services = Depends(services)):
+    try:
+        return await svc.mqtt.new_password()
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@router.get("/mqtt/devices")
+def mqtt_devices(svc: Services = Depends(services)):
+    return svc.mqtt.candidates()
+
+
+@router.post("/mqtt/import")
+def mqtt_import(body: MqttImportBody, svc: Services = Depends(services)):
+    return {"imported": svc.mqtt.import_devices([d.model_dump() for d in body.devices])}
+
+
+@router.delete("/mqtt", status_code=204)
+async def mqtt_disable(svc: Services = Depends(services)):
+    await svc.mqtt.disable()
+
+
 # ============================================================================ tempo real
 
 

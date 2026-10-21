@@ -155,3 +155,31 @@ export interface TuyaCandidate {
 	lan_ip: string | null;
 	imported_device_id: number | null;
 }
+
+export interface MqttStatus {
+	linked: boolean;
+	enabled: boolean;
+	mode: 'embedded' | 'external';
+	connected: boolean;
+	error: string | null;
+	host: string;
+	port: number;
+	username: string;
+	/** Só no servidor embutido: é o que o usuário digita no aparelho. */
+	password: string | null;
+	/** IPs deste computador, para o servidor embutido. */
+	addresses: string[];
+	discovery_prefix: string;
+	discovered_devices: number;
+	imported_devices: number;
+}
+
+export interface MqttCandidate {
+	id: string;
+	name: string;
+	kind: DeviceKind;
+	product_name: string | null;
+	capabilities: Capability[];
+	has_energy_meter: boolean;
+	imported_device_id: number | null;
+}

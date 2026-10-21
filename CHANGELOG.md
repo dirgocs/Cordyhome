@@ -3,6 +3,16 @@
 O Cordyhome segue [versionamento semântico](https://semver.org/lang/pt-BR/): enquanto a versão
 começar com 0, mudanças de recurso sobem o número do meio e correções sobem o último.
 
+## 0.6.0
+
+- Nova integração **MQTT**, compatível com os SONOFF **OpenEdge** (MINI ONE PM e MINI PM), Tasmota,
+  ESPHome, Shelly e Zigbee2MQTT. O Cordyhome tem um servidor MQTT embutido, com usuário e senha
+  gerados, ou usa um servidor que já exista na casa.
+- Os aparelhos MQTT aparecem sozinhos pela descoberta do Home Assistant, com liga/desliga, brilho
+  das lâmpadas e medição de potência, tensão e corrente. O estado chega na hora, sem esperar a
+  próxima leitura.
+- Medidores sem relé aparecem sem o botão de liga/desliga e ficam de fora do "ligar tudo".
+
 ## 0.5.0
 
 - Aparelhos passam a ter **capacidades** (liga/desliga, mede energia, brilho, tom do branco, cor),

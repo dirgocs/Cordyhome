@@ -9,11 +9,12 @@
 	import { dateShort } from '$lib/format';
 	import { errorMessage, home, session, toast } from '$lib/state.svelte';
 	import { applyTheme, getTheme, type Theme } from '$lib/theme';
-	import type { Room, Settings, TuyaStatus } from '$lib/types';
+	import type { MqttStatus, Room, Settings, TuyaStatus } from '$lib/types';
 	import { APP_VERSION, compareVersions, latestRelease, RELEASES_PAGE } from '$lib/version';
 
 	let settings = $state<Settings | null>(null);
 	let tuya = $state<TuyaStatus | null>(null);
+	let mqtt = $state<MqttStatus | null>(null);
 	let timezones = $state<string[]>([]);
 	let theme = $state<Theme>(getTheme());
 	let tariff = $state('');
@@ -23,7 +24,11 @@
 
 	async function load() {
 		try {
-			[settings, tuya] = await Promise.all([api.get<Settings>('/settings'), api.get<TuyaStatus>('/tuya')]);
+			[settings, tuya, mqtt] = await Promise.all([
+				api.get<Settings>('/settings'),
+				api.get<TuyaStatus>('/tuya'),
+				api.get<MqttStatus>('/mqtt')
+			]);
 			tariff = settings.tariff_per_kwh.toFixed(2).replace('.', ',');
 			networks = settings.lan_networks.join(', ');
 		} catch (e) {
@@ -187,7 +192,21 @@
 					<button class="btn sm ghost danger" type="button" onclick={() => (unlinkOpen = true)}>Desvincular</button>
 				</div>
 			</div>
-		{:else}
+		{/if}
+		{#if mqtt?.enabled}
+			<div class="integration">
+				<div>
+					<strong>MQTT</strong>
+					<p class="muted small">
+						{mqtt.connected ? 'Funcionando' : (mqtt.error ?? 'Conectando')} · {mqtt.mode === 'embedded' ? 'servidor do Cordyhome' : `servidor ${mqtt.host}`} · {mqtt.imported_devices} {mqtt.imported_devices === 1 ? 'aparelho' : 'aparelhos'}
+					</p>
+				</div>
+				<div class="actions">
+					<a class="btn sm" href={to('/adicionar/mqtt')}>Abrir</a>
+				</div>
+			</div>
+		{/if}
+		{#if !tuya?.linked && !mqtt?.enabled}
 			<p class="muted small">Nenhuma integração conectada ainda.</p>
 		{/if}
 	</section>

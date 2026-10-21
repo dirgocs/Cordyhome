@@ -29,6 +29,18 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run pytest -q
 
+  # Também no Windows, onde o app roda: o servidor MQTT embutido usa o laço de eventos de lá.
+  hub-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+
   web:
     runs-on: ubuntu-latest
     defaults:

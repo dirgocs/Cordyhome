@@ -34,7 +34,7 @@
 					<span class="muted">{integration.brands}</span>
 					<span class="faint kinds">{integration.kinds}</span>
 					{#if s?.linked}
-						<span class="linked"><CircleCheck size={14} /> Conta vinculada · {s.imported_devices} {s.imported_devices === 1 ? 'aparelho' : 'aparelhos'}</span>
+						<span class="linked"><CircleCheck size={14} /> {integration.linkedLabel} · {s.imported_devices} {s.imported_devices === 1 ? 'aparelho' : 'aparelhos'}</span>
 					{/if}
 				</span>
 				<ChevronRight size={20} class="chevron" />
