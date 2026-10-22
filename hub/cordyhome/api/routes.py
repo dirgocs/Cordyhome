@@ -149,6 +149,18 @@ def get_device(device_id: int, svc: Services = Depends(services)):
         ),
         "schedules": [s for s in _schedules(svc) if s["device_id"] == device_id],
         "events": [dict(e) for e in events],
+        "diagnostics": _diagnostics(svc, device_id),
+    }
+
+
+def _diagnostics(svc: Services, device_id: int) -> dict[str, Any]:
+    """O que o aparelho respondeu por último e como lemos isso (nunca a chave local)."""
+    config = json.loads(svc.hub.row(device_id)["config"] or "{}")
+    raw = svc.hub.last_raw.get(device_id) or {}
+    return {
+        "last_response": raw.get("dps"),
+        "last_response_at": raw.get("ts"),
+        "dp_map": config.get("dp_map"),
     }
 
 

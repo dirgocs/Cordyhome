@@ -114,6 +114,12 @@ export interface DeviceDetail extends Device {
 	power_history: { ts: number; avg_w: number }[];
 	schedules: Schedule[];
 	events: { ts: number; source: string; action: string; detail: string | null }[];
+	/** Última resposta bruta do aparelho, para diagnóstico. */
+	diagnostics?: {
+		last_response: Record<string, unknown> | null;
+		last_response_at: number | null;
+		dp_map: Record<string, unknown> | null;
+	};
 }
 
 export interface Alert {

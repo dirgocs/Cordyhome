@@ -3,6 +3,13 @@
 O Cordyhome segue [versionamento semântico](https://semver.org/lang/pt-BR/): enquanto a versão
 começar com 0, mudanças de recurso sobem o número do meio e correções sobem o último.
 
+## 0.6.1
+
+- Tomadas Tuya: a leitura espera os valores recalculados de potência, tensão e corrente, em vez
+  de usar os da consulta, que em muitas tomadas ficam parados (aparecendo como 0 W).
+- A tela de cada aparelho ganha **Dados técnicos**: a última resposta do aparelho e como o
+  Cordyhome a lê, para investigar leituras estranhas.
+
 ## 0.6.0
 
 - Nova integração **MQTT**, compatível com os SONOFF **OpenEdge** (MINI ONE PM e MINI PM), Tasmota,

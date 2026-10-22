@@ -16,6 +16,12 @@ log = logging.getLogger(__name__)
 
 PROTOCOL_VERSIONS = (3.3, 3.4, 3.5, 3.1)
 
+# Muitas tomadas só recalculam potência, tensão e corrente quando recebem o pedido UPDATEDPS;
+# sem ele a leitura fica parada (em 0 W, por exemplo). Esperamos a resposta por pouco tempo e,
+# se a tomada nunca responde, voltamos a só mandar o pedido sem esperar.
+UPDATE_TIMEOUT = 1.5
+UPDATE_MISSES_LIMIT = 3
+
 # Códigos de erro do tinytuya que indicam chave/versão erradas (e não falta de rede).
 _KEY_OR_VERSION_ERRORS = {"904", "914"}
 _NETWORK_ERRORS = {"901", "902", "905"}
@@ -36,8 +42,10 @@ class TuyaLocalAdapter:
         self.timeout = timeout
         self._devices: dict[int, tinytuya.Device] = {}
         self._locks: dict[int, asyncio.Lock] = {}
+        self._update_misses: dict[int, int] = {}
 
     def forget(self, device_id: int) -> None:
+        self._update_misses.pop(device_id, None)
         dev = self._devices.pop(device_id, None)
         if dev is not None:
             with contextlib.suppress(Exception):  # fechar socket é best effort
@@ -67,11 +75,12 @@ class TuyaLocalAdapter:
         mapping = DpMap.from_dict(device.config.get("dp_map"))
 
         def op(dev: tinytuya.Device) -> dict[str, Any]:
-            if mapping.energy_dps:
-                # Pede à tomada que recalcule potência/tensão/corrente antes da leitura.
-                with contextlib.suppress(Exception):  # firmwares antigos não suportam
-                    dev.updatedps(mapping.energy_dps, nowait=True)
-            return dev.status()
+            fresh = self._refresh_energy(device.id, dev, mapping.energy_dps)
+            result = dev.status()
+            if fresh and isinstance(result, dict) and "Err" not in result:
+                # Os valores recalculados valem mais que os da consulta, que podem estar parados.
+                result = {**result, "dps": {**(result.get("dps") or {}), **fresh}}
+            return result
 
         result, version = await self._run(device, op)
         values = parse_dps(result.get("dps") or {}, mapping)
@@ -79,6 +88,32 @@ class TuyaLocalAdapter:
         if version != _configured_version(device):
             raw["detected_version"] = version
         return DeviceReading(online=True, raw=raw, **values)
+
+    def _refresh_energy(self, device_id: int, dev: tinytuya.Device, dps: list[int]) -> dict:
+        """Pede à tomada que recalcule a medição e devolve os valores novos que ela mandar."""
+        if not dps:
+            return {}
+        wanted = {str(dp) for dp in dps}
+        if self._update_misses.get(device_id, 0) >= UPDATE_MISSES_LIMIT:
+            with contextlib.suppress(Exception):  # firmwares antigos não suportam
+                dev.updatedps(dps, nowait=True)
+            return {}
+        reply = None
+        try:
+            dev.set_socketTimeout(UPDATE_TIMEOUT)
+            reply = dev.updatedps(dps)
+        except Exception as exc:  # noqa: BLE001 - tinytuya levanta tipos variados
+            log.debug("tuya updatedps: %s", exc)
+        finally:
+            with contextlib.suppress(Exception):
+                dev.set_socketTimeout(self.timeout)
+        values = reply.get("dps") if isinstance(reply, dict) else None
+        fresh = {k: v for k, v in (values or {}).items() if str(k) in wanted}
+        if fresh:
+            self._update_misses[device_id] = 0
+        else:
+            self._update_misses[device_id] = self._update_misses.get(device_id, 0) + 1
+        return {str(k): v for k, v in fresh.items()}
 
     async def set_power(self, device: DeviceRef, on: bool) -> DeviceReading | None:
         mapping = DpMap.from_dict(device.config.get("dp_map"))

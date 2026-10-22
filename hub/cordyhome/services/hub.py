@@ -98,6 +98,8 @@ class Hub:
         self._refresh_tasks: set[asyncio.Task] = set()
         self._last_rescan = 0.0
         self.lan_rescan = None  # callback injetado pela integração Tuya
+        # Última resposta bruta de cada aparelho, para a seção "Dados técnicos" da tela.
+        self.last_raw: dict[int, dict[str, Any]] = {}
 
     # ------------------------------------------------------------------ ciclo de vida
 
@@ -147,6 +149,7 @@ class Hub:
 
     def forget(self, device_id: int, adapter: str) -> None:
         self.meter.forget(device_id)
+        self.last_raw.pop(device_id, None)
         if adapter in self.adapters:
             self.adapters[adapter].forget(device_id)
 
@@ -204,6 +207,8 @@ class Hub:
 
         if reading is not None and reading.online:
             changes.update(online=1, last_seen=int(now), last_error=None, fail_count=0)
+            if reading.raw and not from_command:
+                self.last_raw[device_id] = {**reading.raw, "ts": int(now)}
             if reading.is_on is not None:
                 changes["is_on"] = int(reading.is_on)
             if reading.state:
