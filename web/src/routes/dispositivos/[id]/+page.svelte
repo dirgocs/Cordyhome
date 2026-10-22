@@ -359,6 +359,22 @@
 		</form>
 	</section>
 
+	{#if detail.diagnostics?.last_response || detail.diagnostics?.dp_map}
+		<details class="card block tech">
+			<summary>Dados técnicos</summary>
+			<p class="faint small">
+				O que o aparelho respondeu na última leitura{detail.diagnostics.last_response_at ? ` (${relative(detail.diagnostics.last_response_at)})` : ''}. Ajuda a investigar leituras estranhas.
+			</p>
+			{#if detail.diagnostics.last_response}
+				<pre>{JSON.stringify(detail.diagnostics.last_response, null, 1)}</pre>
+			{/if}
+			{#if detail.diagnostics.dp_map}
+				<p class="faint small">Como o Cordyhome lê os valores:</p>
+				<pre>{JSON.stringify(detail.diagnostics.dp_map)}</pre>
+			{/if}
+		</details>
+	{/if}
+
 	<ScheduleForm open={scheduleOpen} schedule={editing} deviceId={id} onclose={() => (scheduleOpen = false)} onsaved={load} />
 
 	<Sheet open={removeOpen} title="Remover {device.name}?" onclose={() => (removeOpen = false)}>
@@ -371,6 +387,20 @@
 {/if}
 
 <style>
+	.tech summary {
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.tech pre {
+		margin: 8px 0 0;
+		padding: 10px 12px;
+		border-radius: var(--radius-sm);
+		background: var(--surface-2);
+		font-family: var(--mono);
+		font-size: 12.5px;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
 	.back {
 		display: inline-flex;
 		align-items: center;

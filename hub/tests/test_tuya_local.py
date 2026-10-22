@@ -93,3 +93,39 @@ def test_light_state_command_sends_dps_and_keeps_requested_state():
     reading = asyncio.run(adapter.set_state(device, {"brightness": 50}))
     assert FakeTinyDevice.calls == [("set", {"20": True, "22": 505, "21": "white"})]
     assert reading.is_on is True and reading.state["brightness"] == 50
+
+
+class StaleMeterDevice(FakeTinyDevice):
+    """Tomada que só atualiza a medição quando recebe UPDATEDPS e responde com os valores."""
+
+    replies = True
+
+    def updatedps(self, index=None, nowait=False):
+        FakeTinyDevice.calls.append(("updatedps", nowait))
+        if nowait or not StaleMeterDevice.replies:
+            return None
+        return {"dps": {"18": 300, "19": 412, "20": 1270}}
+
+    def status(self):
+        return {"dps": {"1": True, "18": 0, "19": 0, "20": 1265}}
+
+
+def test_reading_uses_refreshed_energy_values(monkeypatch):
+    monkeypatch.setattr(local.tinytuya, "OutletDevice", StaleMeterDevice)
+    StaleMeterDevice.replies = True
+    reading = asyncio.run(local.TuyaLocalAdapter().read(ref(version_confirmed=True)))
+    assert reading.power_w == pytest.approx(41.2)
+    assert reading.current_a == pytest.approx(0.3)
+    assert reading.voltage_v == pytest.approx(127.0)
+    assert reading.is_on is True
+
+
+def test_stops_waiting_for_plugs_that_never_answer_updates(monkeypatch):
+    monkeypatch.setattr(local.tinytuya, "OutletDevice", StaleMeterDevice)
+    StaleMeterDevice.replies = False
+    adapter = local.TuyaLocalAdapter()
+    for _ in range(local.UPDATE_MISSES_LIMIT + 1):
+        reading = asyncio.run(adapter.read(ref(version_confirmed=True)))
+    assert reading.power_w == 0
+    waits = [nowait for name, nowait in FakeTinyDevice.calls if name == "updatedps"]
+    assert waits == [False] * local.UPDATE_MISSES_LIMIT + [True]

@@ -184,3 +184,18 @@ def test_state_command_for_lights(authed, svc, adapter):
     assert authed.post(f"/api/devices/{lamp}/state", json={"brightness": 0}).status_code == 422
     assert authed.post(f"/api/devices/{lamp}/state", json={}).status_code == 400
     assert authed.get(f"/api/devices/{plug}").json()["capabilities"] == ["power"]
+
+
+def test_device_detail_shows_last_raw_response(authed, svc, adapter, monkeypatch):
+    from cordyhome.adapters.base import DeviceReading
+
+    device_id = add_device(svc)
+
+    async def read(device):
+        return DeviceReading(online=True, is_on=True, power_w=0, raw={"dps": {"1": True, "19": 0}})
+
+    monkeypatch.setattr(adapter, "read", read)
+    authed.post(f"/api/devices/{device_id}/refresh")
+    diagnostics = authed.get(f"/api/devices/{device_id}").json()["diagnostics"]
+    assert diagnostics["last_response"] == {"1": True, "19": 0}
+    assert diagnostics["last_response_at"] is not None
